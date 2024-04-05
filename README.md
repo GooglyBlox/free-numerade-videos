@@ -1,4 +1,4 @@
-# Numerade Video Viewer
+# [Numerade](https://www.numerade.com) Video Viewer
 
 The Numerade Video Viewer is a web application designed to provide easy access to Numerade videos without the need for a subscription. It serves as a proof of concept (POC) for a scraper that can bypass the subscription requirements on the Numerade platform.
 
@@ -7,7 +7,7 @@ The Numerade Video Viewer is a web application designed to provide easy access t
 
 ## How to Use
 
-1. Open the Numerade Video Viewer website.
+1. Open the Numerade Video Viewer website by cloning this repository to your machine.
 2. In the input box, paste the URL of the Numerade question you want to view. The URL should start with `https://www.numerade.com/questions/`.
 3. Click the `Submit` button to process the link.
 4. The video will be displayed on the screen if available. You can watch it directly within the web application.
