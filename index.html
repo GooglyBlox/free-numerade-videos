@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,35 +14,29 @@
     <link rel="shortcut icon" href="no-more-numerade.ico" type="image/x-icon">
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container my-5 shadow-lg p-5 rounded bg-white">
         <h1 class="text-center mb-4">Numerade Video Viewer</h1>
-        <div class="input-group mb-3">
-            <input type="text" id="urlInput" class="form-control rounded-start" placeholder="Enter the Numerade video URL..." aria-label="URL">
-            <button class="btn btn-primary rounded-end" type="button" onclick="processLink()">Submit</button>
-        </div>
-        <div class="ratio ratio-16x9">
-            <video id="videoOutput" controls class="rounded"></video>
-        </div>
+        <div class="input-group mb-3"> <input type="text" id="urlInput" class="form-control rounded-start"
+                placeholder="Enter the Numerade video URL..." aria-label="URL"> <button
+                class="btn btn-primary rounded-end" type="button" onclick="processLink()">Submit</button> </div>
+        <div class="ratio ratio-16x9"> <video id="videoOutput" controls class="rounded"></video> </div>
     </div>
-
     <div id="overlay" style="display: none;">
         <div id="overlay-content">
             <div class="loader"></div>
             <p>Loading...</p>
         </div>
     </div>
-    
     <script>
         async function processLink() {
             const input = document.getElementById('urlInput').value;
             if (!validateInput(input)) {
-                alert('Invalid link! It must start with https://www.numerade.com/questions/');
+                alert('Invalid link! It must start with https://www.numerade.com/questions/ or https://www.numerade.com/ask/question/');
                 return;
             }
-    
             toggleOverlay(true);
-    
             try {
                 const videoSrc = await fetchVideoSrc(input);
                 if (videoSrc) {
@@ -56,25 +51,35 @@
                 toggleOverlay(false);
             }
         }
-    
+
         function validateInput(input) {
-            return input.startsWith('https://www.numerade.com/questions/');
+            return input.startsWith('https://www.numerade.com/questions/') || input.startsWith('https://www.numerade.com/ask/question/');
         }
-    
+
         async function fetchVideoSrc(url) {
             const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url));
             if (!response.ok) throw new Error('Network response was not ok.');
-    
             const data = await response.json();
             if (!data.contents) return null;
-    
             const doc = new DOMParser().parseFromString(data.contents, 'text/html');
-            const gifElement = doc.querySelector('img.background-gif');
-            if (!gifElement || !gifElement.getAttribute('src').endsWith('.gif')) return null;
-    
-            return gifElement.getAttribute('src').replace('previews', 'encoded').replace('.gif', '.webm');
+            let videoElement;
+            if (url.startsWith('https://www.numerade.com/ask/question/')) {
+                videoElement = doc.querySelector('img[src^="https://cdn.numerade.com/ask_previews/"]');
+                if (videoElement) {
+                    let src = videoElement.getAttribute('src');
+                    src = src.replace('_large', '');
+                    src = src.substring(0, src.lastIndexOf('.'));
+                    return src.replace('ask_previews', 'ask_video') + '.webm';
+                }
+            } else {
+                videoElement = doc.querySelector('img.background-gif');
+                if (videoElement && videoElement.getAttribute('src').endsWith('.gif')) {
+                    return videoElement.getAttribute('src').replace('previews', 'encoded').replace('.gif', '.webm');
+                }
+            }
+            return null;
         }
-    
+
         function toggleOverlay(show) {
             const overlay = document.getElementById('overlay');
             if (show) {
@@ -87,4 +92,5 @@
         }
     </script>
 </body>
+
 </html>
