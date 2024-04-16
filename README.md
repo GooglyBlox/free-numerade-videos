@@ -5,15 +5,25 @@ The Numerade Video Viewer is a web application designed to provide easy access t
 **Easy to Use**: Simply input the URL of the Numerade question, and the video viewer will retrieve the video for you.
 **Bypass Subscription**: This tool allows you to access Numerade's video content without needing a subscription.
 
-## How to Use
+## Option 1: Web Application
 
 1. Open the Numerade Video Viewer website by cloning this repository to your machine.
 2. In the input box, paste the URL of the Numerade question you want to view. The URL should start with `https://www.numerade.com/questions/` or `https://www.numerade.com/ask/question/`.
 3. Click the `Submit` button to process the link.
 4. The video will be displayed on the screen if available. You can watch it directly within the web application.
 
+## Option 2: Userscript
+Alternatively, you can use the Numerade Video Viewer as a userscript. This allows you to automatically fetch and display the unlocked video directly on the Numerade question page.
+
+[![Install Userscript](https://img.shields.io/badge/Install-Userscript-green?style=for-the-badge)](https://github.com/GooglyBlox/free-numerade-videos/raw/main/userscript/numerade-video-viewer.user.js)
+1. Install a userscript manager extension like Tampermonkey or Greasemonkey in your browser.
+2. Click on the "Install Userscript" button above to install the userscript.
+3. Navigate to a valid Numerade question page, and the userscript will automatically execute, fetching and displaying the unlocked video at the top of the page.
+
 ## Disclaimer
 
 This application is a proof of concept and is intended for educational purposes only. It demonstrates the technical possibility of scraping web content and should not be used to infringe on the rights of Numerade or any other service.
 
 Please note that this tool should be used responsibly and within the confines of legal and ethical boundaries.
+
+
