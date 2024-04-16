@@ -6,7 +6,7 @@
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
 // @match        https://www.numerade.com/ask/question/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=numerade.com
+// @icon         https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/no-more-numerade.ico
 // @grant        none
 // ==/UserScript==
 
