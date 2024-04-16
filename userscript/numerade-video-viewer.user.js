@@ -2,7 +2,7 @@
 // @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
 // @updateURL    https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/userscript/numerade-video-viewer.user.js
-// @version      1.0
+// @version      1.1
 // @description  Unlock Numerade video answers for free.
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
@@ -27,7 +27,21 @@
                 videoElement.className = 'rounded';
                 videoElement.style.width = '100%';
                 videoElement.style.height = 'auto';
-                document.body.insertBefore(videoElement, document.body.firstChild);
+
+                let containerElement = document.querySelector('.video-redesign__video-container');
+                
+                if (!containerElement) {
+                    containerElement = document.querySelector('.ask-question-detail__simplified-video-container');
+                }
+                
+                if (containerElement) {
+                    while (containerElement.firstChild) {
+                        containerElement.removeChild(containerElement.firstChild);
+                    }
+                    containerElement.appendChild(videoElement);
+                } else {
+                    console.error('Container element not found.');
+                }
             } else {
                 alert('Failed to load the video.');
             }
