@@ -1,6 +1,7 @@
 // ==UserScript==
 // @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
+// @updateURL    https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/userscript/numerade-video-viewer.user.js
 // @version      1.0
 // @description  Unlock Numerade video answers for free.
 // @author       GooglyBlox
@@ -9,6 +10,7 @@
 // @icon         https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/no-more-numerade.ico
 // @grant        none
 // @license      CC-BY-NC-SA-4.0; https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+// @license      MIT
 // ==/UserScript==
 
 (function() {
