@@ -16,7 +16,7 @@ The Numerade Video Viewer is a web application designed to provide easy access t
 Alternatively, you can use the Numerade Video Viewer as a userscript. This allows you to automatically fetch and display the unlocked video directly on the Numerade question page.
 
 [![Install Userscript](https://img.shields.io/badge/Install-Userscript-green?style=for-the-badge)](https://github.com/GooglyBlox/free-numerade-videos/raw/main/userscript/numerade-video-viewer.user.js)
-1. Install a userscript manager extension like Tampermonkey or Greasemonkey in your browser.
+1. Install a userscript manager extension like [Tampermonkey](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo) or [Violentmonkey](https://chromewebstore.google.com/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdag) in your browser.
 2. Click on the "Install Userscript" button above to install the userscript.
 3. Navigate to a valid Numerade question page, and the userscript will automatically execute, fetching and displaying the unlocked video where there would normally be a static paywall image.
 
