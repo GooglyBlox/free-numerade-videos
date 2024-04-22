@@ -160,6 +160,48 @@ body {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .header h1 {
+        font-size: 2.5rem;
+    }
+
+    .header p {
+        font-size: 1rem;
+    }
+
+    .input-container {
+        flex-direction: column;
+        border-radius: 1rem;
+        padding: 0.5rem;
+    }
+
+    .input-field {
+        width: 100%;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+
+    .submit-btn {
+        margin-left: 0;
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.8rem 1.5rem;
+    }
+
+    .video-wrapper {
+        margin-top: 0.5rem;
+    }
 }
