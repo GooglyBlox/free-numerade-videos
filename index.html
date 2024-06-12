@@ -20,20 +20,25 @@
             <h1>Numerade Video Viewer</h1>
             <p>Unlock Numerade video answers for free</p>
         </header>
-        <div id="inputContainer" class="input-container"> <input type="text" id="urlInput" class="input-field"
-                placeholder="Enter the Numerade video URL..."> <button class="submit-btn"
-                onclick="processLink()">Unlock</button> </div>
+        <div id="inputContainer" class="input-container">
+            <input type="text" id="urlInput" class="input-field" placeholder="Enter the Numerade video URL...">
+            <button class="submit-btn" onclick="processLink()">Unlock</button>
+        </div>
     </div>
 
     <div id="videoWrapper" class="video-wrapper">
         <video id="videoOutput" controls></video>
     </div>
-    
+
     <div id="overlay" style="display: none;">
         <div id="overlay-content">
             <div class="loader"></div>
             <p>Unlocking video...</p>
         </div>
+    </div>
+    
+    <div id="toast-container" class="toast-container">
+        <a href="https://github.com/GooglyBlox/free-numerade-videos/raw/main/userscript/numerade-video-viewer.user.js" class="toast-btn">Looking for the userscript version? Click here!</a>
     </div>
 
     <script>
@@ -139,6 +144,12 @@
                 setTimeout(() => overlay.style.display = 'none', 500);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            setTimeout(() => {
+                document.getElementById('toast-container').classList.add('show-toast');
+            }, 2000);
+        });
     </script>
 </body>
 

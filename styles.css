@@ -209,3 +209,35 @@ body {
         margin-top: 0.5rem;
     }
 }
+
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #333;
+    color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.5s ease, bottom 0.5s ease;
+}
+
+.toast-btn {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.toast-btn:hover {
+    text-decoration: underline;
+}
+
+.show-toast {
+    opacity: 1;
+    bottom: 40px;
+}
