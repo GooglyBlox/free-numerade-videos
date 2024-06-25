@@ -15,12 +15,12 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '14'
+        node-version: '18'
 
     - name: Install dependencies
       run: |
         npm init -y
-        npm install puppeteer
+        npm install puppeteer@19.11.1  # Using an older version compatible with Node.js 18
 
     - name: Create test script
       run: |
@@ -36,24 +36,32 @@ jobs:
         ];
 
         async function testUrl(url) {
-          const browser = await puppeteer.launch();
+          const browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+          });
           const page = await browser.newPage();
           
-          await page.goto('file://' + path.resolve('index.html'));
+          await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0' });
           
           await page.type('#urlInput', url);
           await page.click('.submit-btn');
           
-          await page.waitForSelector('#videoOutput[src]', { timeout: 30000 });
-          
-          const videoSrc = await page.$eval('#videoOutput', el => el.src);
-          
-          assert(videoSrc, `Video source not found for ${url}`);
-          assert(videoSrc.startsWith('https://cdn.numerade.com/'), `Invalid video source for ${url}: ${videoSrc}`);
-          
-          await browser.close();
-          
-          console.log(`Test passed for ${url}`);
+          try {
+            await page.waitForSelector('#videoOutput[src]', { timeout: 30000 });
+            
+            const videoSrc = await page.$eval('#videoOutput', el => el.src);
+            
+            assert(videoSrc, \`Video source not found for \${url}\`);
+            assert(videoSrc.startsWith('https://cdn.numerade.com/'), \`Invalid video source for \${url}: \${videoSrc}\`);
+            
+            console.log(\`Test passed for \${url}\`);
+          } catch (error) {
+            console.error(\`Test failed for \${url}: \${error.message}\`);
+            throw error;
+          } finally {
+            await browser.close();
+          }
         }
 
         (async () => {
@@ -71,13 +79,3 @@ jobs:
 
     - name: Run tests
       run: node test.js
-
-    - name: Report status
-      if: failure()
-      uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        text: Numerade Video Viewer tests failed. Please check the logs.
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
