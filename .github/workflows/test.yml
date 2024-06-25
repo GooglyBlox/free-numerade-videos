@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         npm init -y
-        npm install puppeteer@19.11.1  # Using an older version compatible with Node.js 18
+        npm install puppeteer@19.11.1
 
     - name: Create test script
       run: |
@@ -42,12 +42,12 @@ jobs:
           });
           const page = await browser.newPage();
           
-          await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0' });
-          
-          await page.type('#urlInput', url);
-          await page.click('.submit-btn');
-          
           try {
+            await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0' });
+            
+            await page.type('#urlInput', url);
+            await page.click('.submit-btn');
+            
             await page.waitForSelector('#videoOutput[src]', { timeout: 30000 });
             
             const videoSrc = await page.$eval('#videoOutput', el => el.src);
