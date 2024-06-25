@@ -19,13 +19,15 @@ jobs:
 
     - name: Install dependencies
       run: |
+        npm init -y
         npm install puppeteer
 
-    - name: Run tests
+    - name: Create test script
       run: |
-        node << EOF
+        cat << EOF > test.js
         const puppeteer = require('puppeteer');
         const assert = require('assert');
+        const path = require('path');
 
         const urls = [
           'https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/',
@@ -37,7 +39,7 @@ jobs:
           const browser = await puppeteer.launch();
           const page = await browser.newPage();
           
-          await page.goto('file://${process.cwd()}/index.html');
+          await page.goto('file://' + path.resolve('index.html'));
           
           await page.type('#urlInput', url);
           await page.click('.submit-btn');
@@ -66,3 +68,16 @@ jobs:
           }
         })();
         EOF
+
+    - name: Run tests
+      run: node test.js
+
+    - name: Report status
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: Numerade Video Viewer tests failed. Please check the logs.
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
