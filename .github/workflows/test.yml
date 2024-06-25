@@ -24,7 +24,7 @@ jobs:
 
     - name: Create test script
       run: |
-        cat << EOF > test.js
+        cat << 'EOT' > test.js
         const puppeteer = require('puppeteer');
         const assert = require('assert');
         const path = require('path');
@@ -52,12 +52,12 @@ jobs:
             
             const videoSrc = await page.$eval('#videoOutput', el => el.src);
             
-            assert(videoSrc, \`Video source not found for \${url}\`);
-            assert(videoSrc.startsWith('https://cdn.numerade.com/'), \`Invalid video source for \${url}: \${videoSrc}\`);
+            assert(videoSrc, `Video source not found for ${url}`);
+            assert(videoSrc.startsWith('https://cdn.numerade.com/'), `Invalid video source for ${url}: ${videoSrc}`);
             
-            console.log(\`Test passed for \${url}\`);
+            console.log(`Test passed for ${url}`);
           } catch (error) {
-            console.error(\`Test failed for \${url}: \${error.message}\`);
+            console.error(`Test failed for ${url}: ${error.message}`);
             throw error;
           } finally {
             await browser.close();
@@ -75,7 +75,10 @@ jobs:
             process.exit(1);
           }
         })();
-        EOF
+        EOT
+
+    - name: Display test script content
+      run: cat test.js
 
     - name: Run tests
       run: node test.js
