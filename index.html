@@ -83,57 +83,55 @@
             if (!data.contents) return null;
             const doc = new DOMParser().parseFromString(data.contents, 'text/html');
             
-            const possibleSelectors = [
-                'video.video-js[poster]',
-                'video[poster^="https://cdn.numerade.com/previews/"]',
-                'video[poster^="https://cdn.numerade.com/ask_previews/"]',
-                'video[poster^="https://cdn.numerade.com/project-universal/previews/"]',
-                'img[src^="https://cdn.numerade.com/ask_previews/"]',
-                'img[src^="https://cdn.numerade.com/project-universal/previews/"]',
-                'img.background-gif',
-                '.vjs-poster[style*="background-image"]'
-            ];
-    
+            let videoId = null;
 
-            for (const selector of possibleSelectors) {
-                const element = doc.querySelector(selector);
-                if (element) {
-                    let src;
-                    if (selector.includes('style')) {
-                        const style = element.getAttribute('style');
-                        const match = style.match(/url\("(.+?)"\)/);
-                        src = match ? match[1] : null;
-                    } else {
-                        src = element.getAttribute(selector.includes('video') ? 'poster' : 'src');
+            // Check for videoUrl in the script tag
+            const scriptElements = doc.getElementsByTagName('script');
+            for (const scriptElement of scriptElements) {
+                if (!scriptElement.src) {
+                    const scriptText = scriptElement.textContent;
+                    if (scriptText.includes('videoUrl')) {
+                        const videoUrlMatch = scriptText.match(/videoUrl\s*=\s*['"](.+?)['"]/);
+                        if (videoUrlMatch) {
+                            videoId = videoUrlMatch[1];
+                            break;
+                        }
                     }
+                }
+            }
 
-                    if (src) {
-                        src = src.split('?')[0];
-                        const fileExtension = src.split('.').pop().toLowerCase();
-                        src = src.replace(/(_large)?(\.jpg|\.gif|\.png)?$/, '');
+            // Check for videoUrl in the meta tag
+            if (!videoId) {
+                const metaElement = doc.querySelector('meta[property="twitter:image"]');
+                if (metaElement) {
+                    const contentValue = metaElement.getAttribute('content');
+                    const videoIdMatch = contentValue.match(/\/([^/]+)_large\.jpg$/);
+                    if (videoIdMatch) {
+                        videoId = videoIdMatch[1];
+                    }
+                }
+            }
 
-                        const baseUrls = [
-                            'https://cdn.numerade.com/ask_previews/',
-                            'https://cdn.numerade.com/project-universal/previews/',
-                            'https://cdn.numerade.com/ask_video/',
-                            'https://cdn.numerade.com/project-universal/encoded/',
-                            'https://cdn.numerade.com/encoded/'
-                        ];
+            if (videoId) {
+                const baseUrls = [
+                    'https://cdn.numerade.com/ask_previews/',
+                    'https://cdn.numerade.com/project-universal/previews/',
+                    'https://cdn.numerade.com/ask_video/',
+                    'https://cdn.numerade.com/project-universal/encoded/',
+                    'https://cdn.numerade.com/encoded/'
+                ];
+                const fileTypes = ['webm', 'mp4', 'm4a'];
 
-                        const fileTypes = ['webm', 'mp4', 'm4a'];
-
-                        for (const baseUrl of baseUrls) {
-                            for (const fileType of fileTypes) {
-                                const videoSrc = `${baseUrl}${src.split('/').pop()}.${fileType}`;
-                                try {
-                                    const response = await fetch(videoSrc, { method: 'HEAD' });
-                                    if (response.ok) {
-                                        return videoSrc;
-                                    }
-                                } catch (error) {
-                                    console.error(`Error checking video source ${videoSrc}:`, error);
-                                }
+                for (const baseUrl of baseUrls) {
+                    for (const fileType of fileTypes) {
+                        const videoSrc = `${baseUrl}${videoId}.${fileType}`;
+                        try {
+                            const response = await fetch(videoSrc, { method: 'HEAD' });
+                            if (response.ok) {
+                                return videoSrc;
                             }
+                        } catch (error) {
+                            console.error(`Error checking video source ${videoSrc}:`, error);
                         }
                     }
                 }
