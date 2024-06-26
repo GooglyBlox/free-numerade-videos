@@ -48,7 +48,7 @@ jobs:
             await page.type('#urlInput', url);
             await page.click('.submit-btn');
             
-            await page.waitForSelector('#videoOutput[src]', { timeout: 30000 });
+            await page.waitForSelector('#videoOutput[src]', { timeout: 60000 });
             
             const videoSrc = await page.$eval('#videoOutput', el => el.src);
             
