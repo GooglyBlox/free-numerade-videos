@@ -1,0 +1,84 @@
+name: Test Numerade Video Viewer
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: |
+        npm init -y
+        npm install puppeteer@19.11.1
+
+    - name: Create test script
+      run: |
+        cat << 'EOT' > test.js
+        const puppeteer = require('puppeteer');
+        const assert = require('assert');
+        const path = require('path');
+
+        const urls = [
+          'https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/',
+          'https://www.numerade.com/questions/select-the-correct-alternative-from-the-given-choices-a-100-mathrmkm-long-cable-runs-at-1536-mathrmm/',
+          'https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/'
+        ];
+
+        async function testUrl(url) {
+          const browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+          });
+          const page = await browser.newPage();
+          
+          try {
+            await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0' });
+            
+            await page.type('#urlInput', url);
+            await page.click('.submit-btn');
+            
+            await page.waitForSelector('#videoOutput[src]', { timeout: 30000 });
+            
+            const videoSrc = await page.$eval('#videoOutput', el => el.src);
+            
+            assert(videoSrc, `Video source not found for ${url}`);
+            assert(videoSrc.startsWith('https://cdn.numerade.com/'), `Invalid video source for ${url}: ${videoSrc}`);
+            
+            console.log(`Test passed for ${url}`);
+          } catch (error) {
+            console.error(`Test failed for ${url}: ${error.message}`);
+            throw error;
+          } finally {
+            await browser.close();
+          }
+        }
+
+        (async () => {
+          try {
+            for (const url of urls) {
+              await testUrl(url);
+            }
+            console.log('All tests passed successfully!');
+          } catch (error) {
+            console.error('Test failed:', error);
+            process.exit(1);
+          }
+        })();
+        EOT
+
+    - name: Display test script content
+      run: cat test.js
+
+    - name: Run tests
+      run: node test.js
