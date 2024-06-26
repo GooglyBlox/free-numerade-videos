@@ -2,7 +2,7 @@
 // @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
 // @updateURL    https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/userscript/numerade-video-viewer.user.js
-// @version      1.2
+// @version      1.3
 // @description  Unlock Numerade video answers for free.
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
@@ -23,18 +23,25 @@
                 const videoElement = document.createElement('video');
                 videoElement.src = videoSrc;
                 videoElement.controls = true;
-                videoElement.className = 'rounded';
+                videoElement.className = 'video-js vjs-fill vjs-big-play-centered video-player--is-large';
                 videoElement.style.width = '100%';
-                videoElement.style.height = 'auto';
+                videoElement.style.height = '500px';
 
-                let containerElement = document.querySelector('.video-redesign__video-container') ||
-                                       document.querySelector('.ask-question-detail__simplified-video-container');
+                const containerElement = document.querySelector('.solution-registration-form-r.multi-part-form.multi-part-visible[data-form-order="1"]');
 
                 if (containerElement) {
-                    while (containerElement.firstChild) {
-                        containerElement.removeChild(containerElement.firstChild);
+                    const existingVideoElement = containerElement.querySelector('video');
+                    if (existingVideoElement) {
+                        existingVideoElement.parentNode.replaceChild(videoElement, existingVideoElement);
+                    } else {
+                        containerElement.appendChild(videoElement);
                     }
-                    containerElement.appendChild(videoElement);
+
+                    // Remove the purple overlay element
+                    const purpleOverlayElement = containerElement.querySelector('.purple-overlay');
+                    if (purpleOverlayElement) {
+                        purpleOverlayElement.remove();
+                    }
                 } else {
                     console.error('Container element not found.');
                 }
@@ -47,49 +54,51 @@
     }
 
     async function fetchVideoSrc() {
-        const doc = document;
-        const possibleSelectors = [
-            'img[src^="https://cdn.numerade.com/ask_previews/"]',
-            'video[poster^="https://cdn.numerade.com/project-universal/previews/"]',
-            'img.background-gif',
-            '.vjs-poster[style*="background-image"]'
-        ];
+        let videoId = null;
 
-        for (const selector of possibleSelectors) {
-            const element = doc.querySelector(selector);
-            if (element) {
-                let src;
-                if (selector.includes('style')) {
-                    const style = element.getAttribute('style');
-                    const match = style.match(/url\("(.+?)"\)/);
-                    src = match ? match[1] : null;
-                } else {
-                    src = element.getAttribute(selector.includes('video') ? 'poster' : 'src');
+        // Check for videoUrl in the script tag
+        const scriptElements = document.getElementsByTagName('script');
+        for (const scriptElement of scriptElements) {
+            if (!scriptElement.src) {
+                const scriptText = scriptElement.textContent;
+                if (scriptText.includes('videoUrl')) {
+                    const videoUrlMatch = scriptText.match(/videoUrl\s*=\s*['"](.+?)['"]/);
+                    if (videoUrlMatch) {
+                        videoId = videoUrlMatch[1];
+                        break;
+                    }
                 }
+            }
+        }
 
-                if (src) {
-                    src = src.split('?')[0];
-                    const fileExtension = src.split('.').pop().toLowerCase();
-                    src = src.replace(/(_large)?(\.jpg|\.gif|\.png)?$/, '');
+        // Check for videoUrl in the meta tag
+        if (!videoId) {
+            const metaElement = document.querySelector('meta[property="twitter:image"]');
+            if (metaElement) {
+                const contentValue = metaElement.getAttribute('content');
+                const videoIdMatch = contentValue.match(/\/([^/]+)_large\.jpg$/);
+                if (videoIdMatch) {
+                    videoId = videoIdMatch[1];
+                }
+            }
+        }
 
-                    const baseUrls = [
-                        'https://cdn.numerade.com/ask_previews/',
-                        'https://cdn.numerade.com/project-universal/previews/',
-                        'https://cdn.numerade.com/ask_video/',
-                        'https://cdn.numerade.com/project-universal/encoded/',
-                        'https://cdn.numerade.com/encoded/'
-                    ];
+        if (videoId) {
+            const baseUrls = [
+                'https://cdn.numerade.com/ask_previews/',
+                'https://cdn.numerade.com/project-universal/previews/',
+                'https://cdn.numerade.com/ask_video/',
+                'https://cdn.numerade.com/project-universal/encoded/',
+                'https://cdn.numerade.com/encoded/'
+            ];
+            const fileTypes = ['webm', 'mp4', 'm4a'];
 
-                    const fileTypes = ['webm', 'mp4', 'm4a'];
-
-                    for (const baseUrl of baseUrls) {
-                        for (const fileType of fileTypes) {
-                            const videoSrc = `${baseUrl}${src.split('/').pop()}.${fileType}`;
-                            const response = await fetch(videoSrc, { method: 'HEAD' });
-                            if (response.ok) {
-                                return videoSrc;
-                            }
-                        }
+            for (const baseUrl of baseUrls) {
+                for (const fileType of fileTypes) {
+                    const videoSrc = `${baseUrl}${videoId}.${fileType}`;
+                    const response = await fetch(videoSrc, { method: 'HEAD' });
+                    if (response.ok) {
+                        return videoSrc;
                     }
                 }
             }
