@@ -3,6 +3,7 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -30,6 +31,7 @@ jobs:
           'https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/'
         ];
         let passingTests = 0;
+        let failedTests = 0;
         async function testUrl(url) {
           const browser = await puppeteer.launch({
             headless: 'new',
@@ -54,6 +56,7 @@ jobs:
             passingTests++;
           } catch (error) {
             console.error(`Test failed for ${url}: ${error.message}`);
+            failedTests++;
           } finally {
             await browser.close();
           }
@@ -63,7 +66,8 @@ jobs:
             await testUrl(url);
           }
           console.log(`${passingTests} out of ${urls.length} tests passed successfully!`);
-          fs.writeFileSync('test-results.txt', `${passingTests}`);
+          console.log(`${failedTests} tests failed.`);
+          fs.writeFileSync('test-results.txt', `${passingTests},${failedTests}`);
         })();
         EOT
     - name: Display test script content
@@ -73,14 +77,23 @@ jobs:
     - name: Update README
       run: |
         current_date=$(date +'%Y-%m-%d')
+        passing_tests=$(cut -d',' -f1 test-results.txt)
+        failed_tests=$(cut -d',' -f2 test-results.txt)
+        total_tests=$((passing_tests + failed_tests))
         sed -i '/!\[Tests Passing\]/d' README.md
         sed -i '/!\[Last Tested\]/d' README.md
         sed -i '1i\![Last Tested](https://img.shields.io/badge/Last%20Tested-'"${current_date}"'-blue)' README.md
-        sed -i '1i\![Tests Passing](https://img.shields.io/badge/Tests%20Passing-'$(cat test-results.txt)'-brightgreen)' README.md
+        sed -i '1i\![Tests Passing](https://img.shields.io/badge/Tests%20Passing-'"${passing_tests}"'%2F'"${total_tests}"'-brightgreen)' README.md
     - name: Commit changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add README.md
         git commit -m "Update test results and date badges" || echo "No changes to commit"
-        git push
+        git push || echo "Failed to push changes"
+    - name: Check for push failures
+      run: |
+        if [[ $(git push 2>&1) == *"error"* ]]; then
+          echo "::error::Failed to push changes. Please ensure the workflow has write permissions."
+          exit 1
+        fi
