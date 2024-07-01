@@ -80,16 +80,30 @@ jobs:
         passing_tests=$(cut -d',' -f1 test-results.txt)
         failed_tests=$(cut -d',' -f2 test-results.txt)
         total_tests=$((passing_tests + failed_tests))
-        sed -i '/!\[Tests Passing\]/d' README.md
-        sed -i '/!\[Last Tested\]/d' README.md
-        sed -i '1i\![Last Tested](https://img.shields.io/badge/Last%20Tested-'"${current_date}"'-blue)' README.md
-        sed -i '1i\![Tests Passing](https://img.shields.io/badge/Tests%20Passing-'"${passing_tests}"'%2F'"${total_tests}"'-brightgreen)' README.md
+        
+        # Remove old test results section if it exists
+        sed -i '/^## 🧪 Test Results/,/^$/d' README.md
+        
+        # Append new test results section
+        cat << EOF >> README.md
+        
+        ## Test Results
+        
+        | 📊 Status | 🔢 Count |
+        |-----------|----------|
+        | ✅ Passing | $passing_tests |
+        | ❌ Failed | $failed_tests |
+        | 🔬 Total | $total_tests |
+        
+        🕒 Last Tested: $current_date
+                
+        EOF
     - name: Commit changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add README.md
-        git commit -m "Update test results and date badges" || echo "No changes to commit"
+        git commit -m "Update test results and date" || echo "No changes to commit"
         git push || echo "Failed to push changes"
     - name: Check for push failures
       run: |
