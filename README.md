@@ -1,3 +1,5 @@
+![Tests Passing](https://img.shields.io/badge/Tests%20Passing-3%2F3-brightgreen)
+![Last Tested](https://img.shields.io/badge/Last%20Tested-2024-07-01-blue)
 # [Numerade](https://www.numerade.com) Video Viewer
 
 The Numerade Video Viewer is a web application designed to provide easy access to Numerade videos without the need for a subscription. It serves as a proof of concept (POC) for a scraper that can bypass the subscription requirements on the Numerade platform.
