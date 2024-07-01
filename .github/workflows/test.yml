@@ -81,13 +81,9 @@ jobs:
         failed_tests=$(cut -d',' -f2 test-results.txt)
         total_tests=$((passing_tests + failed_tests))
         
-        # Remove old test results section if it exists
-        sed -i '/^## 🧪 Test Results/,/^$/d' README.md
+        sed -i '/^## Test Results/,$d' README.md
         
-        # Append new test results section
         cat << EOF >> README.md
-        
-        ## Test Results
         
         | 📊 Status | 🔢 Count |
         |-----------|----------|
@@ -96,7 +92,6 @@ jobs:
         | 🔬 Total | $total_tests |
         
         🕒 Last Tested: $current_date
-                
         EOF
     - name: Commit changes
       run: |
@@ -104,7 +99,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git add README.md
         git commit -m "Update test results and date" || echo "No changes to commit"
-        git push || echo "Failed to push changes"
+        git push
     - name: Check for push failures
       run: |
         if [[ $(git push 2>&1) == *"error"* ]]; then
