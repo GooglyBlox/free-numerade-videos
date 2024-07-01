@@ -37,15 +37,3 @@ Please note that this tool should be used responsibly and within the confines of
 | 🔬 Total | 3 |
 
 🕒 Last Tested: 2024-07-01
-        
-
-## Test Results
-
-| 📊 Status | 🔢 Count |
-|-----------|----------|
-| ✅ Passing | 3 |
-| ❌ Failed | 0 |
-| 🔬 Total | 3 |
-
-🕒 Last Tested: 2024-07-01
-        
