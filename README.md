@@ -25,14 +25,3 @@ Alternatively, you can use the Numerade Video Viewer as a userscript. This allow
 This application is a proof of concept and is intended for educational purposes only. It demonstrates the technical possibility of scraping web content and should not be used to infringe on the rights of Numerade or any other service.
 
 Please note that this tool should be used responsibly and within the confines of legal and ethical boundaries.
-
-
-
-
-| 📊 Status | 🔢 Count |
-|-----------|----------|
-| ✅ Passing | 3 |
-| ❌ Failed | 0 |
-| 🔬 Total | 3 |
-
-🕒 Last Tested: 2024-07-02
