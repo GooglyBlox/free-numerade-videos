@@ -74,7 +74,7 @@ jobs:
       run: cat test.js
     - name: Run tests
       run: node test.js
-    - name: Update README
+   - name: Update README
       run: |
         current_date=$(date +'%Y-%m-%d')
         passing_tests=$(cut -d',' -f1 test-results.txt)
@@ -84,6 +84,8 @@ jobs:
         sed -i '/^## Test Results/,$d' README.md
         
         cat << EOF >> README.md
+
+        ## Test Results
         
         | 📊 Status | 🔢 Count |
         |-----------|----------|
