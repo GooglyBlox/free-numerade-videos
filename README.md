@@ -26,12 +26,13 @@ This application is a proof of concept and is intended for educational purposes 
 
 Please note that this tool should be used responsibly and within the confines of legal and ethical boundaries.
 
+
 ## Test Results
 
 | 📊 Status | 🔢 Count |
 |-----------|----------|
-| ✅ Passing | 3 |
-| ❌ Failed | 0 |
+| ✅ Passing | 2 |
+| ❌ Failed | 1 |
 | 🔬 Total | 3 |
 
-🕒 Last Tested: 2024-07-02
+🕒 Last Tested: 2024-07-03
