@@ -44,12 +44,13 @@ Please note that this tool should be used responsibly and within the confines of
 
 
 
+
 ## Test Results
 
 | 📊 Status | 🔢 Count |
 |-----------|----------|
-| ✅ Passing | 0 |
-| ❌ Failed | 3 |
+| ✅ Passing | 3 |
+| ❌ Failed | 0 |
 | 🔬 Total | 3 |
 
-🕒 Last Tested: 2024-07-20
+🕒 Last Tested: 2024-07-21
