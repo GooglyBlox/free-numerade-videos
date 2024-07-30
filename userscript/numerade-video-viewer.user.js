@@ -2,7 +2,7 @@
 // @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
 // @updateURL    https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/userscript/numerade-video-viewer.user.js
-// @version      1.3
+// @version      1.4
 // @description  Unlock Numerade video answers for free.
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
@@ -37,11 +37,18 @@
                         containerElement.appendChild(videoElement);
                     }
 
-                    // Remove the purple overlay element
                     const purpleOverlayElement = containerElement.querySelector('.purple-overlay');
                     if (purpleOverlayElement) {
                         purpleOverlayElement.remove();
                     }
+
+                    removeElements([
+                        '.vjs-poster',
+                        '.vjs-text-track-display',
+                        '.vjs-loading-spinner',
+                        '.vjs-big-play-button',
+                        '.vjs-control-bar'
+                    ]);
                 } else {
                     console.error('Container element not found.');
                 }
@@ -53,10 +60,18 @@
         }
     }
 
+    function removeElements(selectors) {
+        selectors.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.remove();
+            }
+        });
+    }
+
     async function fetchVideoSrc() {
         let videoId = null;
 
-        // Check for videoUrl in the script tag
         const scriptElements = document.getElementsByTagName('script');
         for (const scriptElement of scriptElements) {
             if (!scriptElement.src) {
@@ -71,7 +86,6 @@
             }
         }
 
-        // Check for videoUrl in the meta tag
         if (!videoId) {
             const metaElement = document.querySelector('meta[property="twitter:image"]');
             if (metaElement) {
