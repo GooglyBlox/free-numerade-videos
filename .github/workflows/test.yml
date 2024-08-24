@@ -10,14 +10,17 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
+    
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
         node-version: '18'
+    
     - name: Install dependencies
       run: |
         npm init -y
-        npm install puppeteer@19.11.1 http-server
+        npm install puppeteer@latest http-server
+    
     - name: Create test script
       run: |
         cat << 'EOT' > test.js
@@ -25,11 +28,13 @@ jobs:
         const assert = require('assert');
         const path = require('path');
         const fs = require('fs');
+
         const urls = [
           'https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/',
           'https://www.numerade.com/questions/select-the-correct-alternative-from-the-given-choices-a-100-mathrmkm-long-cable-runs-at-1536-mathrmm/',
           'https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/'
         ];
+
         let passingTests = 0;
         let failedTests = 0;
         let errors = [];
@@ -37,32 +42,38 @@ jobs:
         async function testUrl(url) {
           const browser = await puppeteer.launch({
             headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            defaultViewport: null,
+            timeout: 60000
           });
           const page = await browser.newPage();
           
           try {
-            await page.goto('http://localhost:8080', { waitUntil: 'networkidle0' });
+            await page.goto('http://localhost:8080', { waitUntil: 'networkidle0', timeout: 60000 });
             
-            // Test input validation
-            await page.type('#urlInput', 'https://invalid-url.com');
-            await page.click('.submit-btn');
-            const alertText = await page.evaluate(() => {
-              return new Promise(resolve => {
-                window.alert = resolve;
-              });
-            });
-            assert(alertText.includes('Invalid link'), 'Input validation failed');
+            await page.type('#urlInput', 'https://invalid-url.com', { timeout: 30000 });
+            await Promise.all([
+              page.click('.submit-btn', { timeout: 30000 }),
+              page.waitForFunction(() => {
+                return new Promise(resolve => {
+                  window.alert = msg => {
+                    window.lastAlertMessage = msg;
+                    resolve();
+                  };
+                });
+              }, { timeout: 30000 })
+            ]);
+            
+            const alertText = await page.evaluate(() => window.lastAlertMessage);
+            assert(alertText && alertText.includes('Invalid link'), 'Input validation failed');
 
-            // Test actual Numerade URL
             await page.$eval('#urlInput', el => el.value = '');
-            await page.type('#urlInput', url);
-            await page.click('.submit-btn');
+            await page.type('#urlInput', url, { timeout: 30000 });
+            await page.click('.submit-btn', { timeout: 30000 });
             
-            // Wait for either video to load or error to occur
             await Promise.race([
-              page.waitForSelector('#videoOutput[src]', { timeout: 60000 }),
-              page.waitForSelector('#overlay:not([style*="display: none"])', { timeout: 60000 })
+              page.waitForSelector('#videoOutput[src]', { visible: true, timeout: 60000 }),
+              page.waitForSelector('#overlay:not([style*="display: none"])', { visible: true, timeout: 60000 })
             ]);
             
             const videoSrc = await page.$eval('#videoOutput', el => el.src);
@@ -75,7 +86,6 @@ jobs:
             assert(videoSrc, `Video source not found for ${url}`);
             assert(videoSrc.startsWith('https://cdn.numerade.com/'), `Invalid video source for ${url}: ${videoSrc}`);
             
-            // Check for console errors
             const consoleErrors = await page.evaluate(() => {
               return window.consoleErrors || [];
             });
@@ -106,13 +116,17 @@ jobs:
           fs.writeFileSync('test-errors.txt', errors.join('\n'));
         })();
         EOT
+    
     - name: Modify index.html for testing
       run: |
         sed -i 's|</head>|<script>window.consoleErrors = []; console.error = function() { window.consoleErrors.push(Array.from(arguments).join(" ")); };</script></head>|' index.html
+    
     - name: Start HTTP server
       run: npx http-server . &
+    
     - name: Run tests
       run: node test.js
+    
     - name: Update README
       run: |
         current_date=$(date +'%Y-%m-%d')
@@ -142,6 +156,7 @@ jobs:
           cat test-errors.txt >> README.md
           echo "\`\`\`" >> README.md
         fi
+    
     - name: Commit changes
       run: |
         git config --local user.email "action@github.com"
@@ -149,9 +164,16 @@ jobs:
         git add README.md
         git commit -m "Update test results and date" || echo "No changes to commit"
         git push
+    
     - name: Check for push failures
       run: |
         if [[ $(git push 2>&1) == *"error"* ]]; then
           echo "::error::Failed to push changes. Please ensure the workflow has write permissions."
           exit 1
         fi
+    
+    - name: Check for test failures
+      if: ${{ failure() }}
+      run: |
+        echo "::error::Tests failed. Check the logs for more details."
+        exit 1
