@@ -2,13 +2,14 @@
 // @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
 // @updateURL    https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/userscript/numerade-video-viewer.user.js
-// @version      1.4
+// @version      1.5
 // @description  Unlock Numerade video answers for free.
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
 // @match        https://www.numerade.com/ask/question/*
 // @icon         https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/no-more-numerade.ico
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @connect      cdn.numerade.com
 // @license      CC-BY-NC-SA-4.0; https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 // @license      MIT
 // ==/UserScript==
@@ -110,15 +111,34 @@
             for (const baseUrl of baseUrls) {
                 for (const fileType of fileTypes) {
                     const videoSrc = `${baseUrl}${videoId}.${fileType}`;
-                    const response = await fetch(videoSrc, { method: 'HEAD' });
-                    if (response.ok) {
-                        return videoSrc;
+                    try {
+                        const exists = await checkResourceExists(videoSrc);
+                        if (exists) {
+                            return videoSrc;
+                        }
+                    } catch (error) {
+                        console.error(`Error checking video source ${videoSrc}:`, error);
                     }
                 }
             }
         }
 
         return null;
+    }
+
+    function checkResourceExists(url) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: 'HEAD',
+                url: url,
+                onload: function(response) {
+                    resolve(response.status === 200);
+                },
+                onerror: function(error) {
+                    reject(error);
+                }
+            });
+        });
     }
 
     processLink();
