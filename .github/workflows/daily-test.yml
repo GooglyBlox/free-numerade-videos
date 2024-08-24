@@ -44,7 +44,7 @@ jobs:
 
     - name: Create test script
       run: |
-        cat << EOT > test.spec.js
+        cat << 'EOT' > test.spec.js
         const { test, expect } = require('@playwright/test');
 
         const urls = [
@@ -59,7 +59,7 @@ jobs:
           console.log('Navigated to localhost');
           
           for (const url of urls) {
-            console.log(\`Testing URL: \${url}\`);
+            console.log(`Testing URL: ${url}`);
             await page.fill('#inputContainer input', url);
             await page.click('#inputContainer button');
             
@@ -76,6 +76,9 @@ jobs:
           console.log('Test completed');
         });
         EOT
+
+    - name: Display test script content
+      run: cat test.spec.js
 
     - name: Start local server
       run: |
