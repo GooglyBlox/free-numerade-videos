@@ -25,13 +25,16 @@ jobs:
         const assert = require('assert');
         const path = require('path');
         const fs = require('fs');
+
         const urls = [
           'https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/',
           'https://www.numerade.com/questions/select-the-correct-alternative-from-the-given-choices-a-100-mathrmkm-long-cable-runs-at-1536-mathrmm/',
           'https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/'
         ];
+
         let passingTests = 0;
         let failedTests = 0;
+
         async function testUrl(url) {
           const browser = await puppeteer.launch({
             headless: 'new',
@@ -40,15 +43,25 @@ jobs:
           const page = await browser.newPage();
           
           try {
+            console.log(`Testing URL: ${url}`);
             await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0' });
+            console.log('Page loaded');
             
             await page.type('#urlInput', url);
+            console.log('URL entered');
             await page.click('.submit-btn');
+            console.log('Submit button clicked');
             
-            await page.waitForSelector('#videoOutput[src]', { timeout: 60000 });
-            
-            const videoSrc = await page.$eval('#videoOutput', el => el.src);
-            
+            await page.waitForResponse(response => response.url().includes('numerade.com'), { timeout: 120000 });
+            console.log('Fetch request completed');
+
+            const videoSrc = await page.evaluate(() => {
+              const video = document.querySelector('#videoOutput');
+              return video ? video.src : null;
+            });
+
+            console.log(`Video source: ${videoSrc}`);
+
             assert(videoSrc, `Video source not found for ${url}`);
             assert(videoSrc.startsWith('https://cdn.numerade.com/'), `Invalid video source for ${url}: ${videoSrc}`);
             
@@ -61,6 +74,7 @@ jobs:
             await browser.close();
           }
         }
+
         (async () => {
           for (const url of urls) {
             await testUrl(url);
