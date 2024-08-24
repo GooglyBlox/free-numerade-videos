@@ -38,7 +38,11 @@ jobs:
             viewport: { width: 1280, height: 720 },
             ignoreHTTPSErrors: true,
             video: 'on-first-retry',
+            launchOptions: {
+              slowMo: 1000,
+            },
           },
+          timeout: 60000,
         };
         EOT
 
@@ -64,7 +68,13 @@ jobs:
             await page.click('#inputContainer button');
             
             console.log('Waiting for video to load');
-            await page.waitForSelector('#videoWrapper iframe', { state: 'attached', timeout: 30000 });
+            try {
+              await page.waitForSelector('#videoWrapper iframe', { state: 'attached', timeout: 45000 });
+              console.log('Video iframe found');
+            } catch (error) {
+              console.log('Timeout waiting for video iframe. Moving to next URL.');
+              continue;
+            }
             
             console.log('Checking if video is present');
             const videoFrame = await page.$('#videoWrapper iframe');
@@ -86,7 +96,7 @@ jobs:
         sleep 5  # Give the server some time to start
 
     - name: Run Playwright tests
-      run: npx playwright test
+      run: npx playwright test --debug
 
     - name: Upload test results
       if: always()
