@@ -33,7 +33,7 @@ jobs:
 
     - name: Create and run Playwright tests
       run: |
-        cat << EOF > test.js
+        cat << 'EOT' > test.js
         const { test, expect } = require('@playwright/test');
 
         const urls = [
@@ -57,7 +57,7 @@ jobs:
             await page.fill('#inputContainer input', '');
           }
         });
-        EOF
+        EOT
 
         npx playwright test test.js
 
