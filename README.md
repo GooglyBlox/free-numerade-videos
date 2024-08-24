@@ -80,6 +80,7 @@ Please note that this tool should be used responsibly and within the confines of
 
 
 
+
 ## Test Results
 
 | 📊 Status | 🔢 Count |
@@ -89,9 +90,3 @@ Please note that this tool should be used responsibly and within the confines of
 | 🔬 Total | 3 |
 
 🕒 Last Tested: 2024-08-24
-
-### Errors
-```
-https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/: Waiting failed: 30000ms exceeded
-https://www.numerade.com/questions/select-the-correct-alternative-from-the-given-choices-a-100-mathrmkm-long-cable-runs-at-1536-mathrmm/: Waiting failed: 30000ms exceeded
-https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/: Waiting failed: 30000ms exceeded```
