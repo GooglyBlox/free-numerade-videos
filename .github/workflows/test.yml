@@ -38,13 +38,15 @@ jobs:
         async function testUrl(url) {
           const browser = await puppeteer.launch({
             headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            defaultViewport: null,
+            timeout: 180000 // Increase browser launch timeout to 3 minutes
           });
           const page = await browser.newPage();
           
           try {
             console.log(`Testing URL: ${url}`);
-            await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0' });
+            await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0', timeout: 60000 });
             console.log('Page loaded');
             
             await page.type('#urlInput', url);
@@ -52,14 +54,16 @@ jobs:
             await page.click('.submit-btn');
             console.log('Submit button clicked');
             
-            await page.waitForResponse(response => response.url().includes('numerade.com'), { timeout: 120000 });
+            await page.waitForResponse(
+              response => response.url().includes('numerade.com') && response.status() === 200,
+              { timeout: 120000 }
+            );
             console.log('Fetch request completed');
 
-            const videoSrc = await page.evaluate(() => {
-              const video = document.querySelector('#videoOutput');
-              return video ? video.src : null;
-            });
+            await page.waitForSelector('#videoOutput[src]', { timeout: 30000 });
+            console.log('Video element found with src attribute');
 
+            const videoSrc = await page.$eval('#videoOutput', el => el.src);
             console.log(`Video source: ${videoSrc}`);
 
             assert(videoSrc, `Video source not found for ${url}`);
