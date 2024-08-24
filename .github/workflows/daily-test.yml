@@ -31,7 +31,7 @@ jobs:
         http-server . -p 8080 &
         sleep 5  # Give the server some time to start
 
-    - name: Create and run Playwright tests
+    - name: Create test script
       run: |
         cat << 'EOT' > test.js
         const { test, expect } = require('@playwright/test');
@@ -43,23 +43,34 @@ jobs:
         ];
 
         test('Website functionality', async ({ page }) => {
+          console.log('Starting test');
           await page.goto('http://localhost:8080');
+          console.log('Navigated to localhost');
           
           for (const url of urls) {
+            console.log(`Testing URL: ${url}`);
             await page.fill('#inputContainer input', url);
             await page.click('#inputContainer button');
             
+            console.log('Waiting for video to load');
             await page.waitForSelector('#videoWrapper iframe', { state: 'attached', timeout: 30000 });
             
+            console.log('Checking if video is present');
             const videoFrame = await page.$('#videoWrapper iframe');
             expect(videoFrame).not.toBeNull();
             
+            console.log('Clearing input');
             await page.fill('#inputContainer input', '');
           }
+          console.log('Test completed');
         });
         EOT
 
-        npx playwright test test.js
+    - name: Display test script content
+      run: cat test.js
+
+    - name: Run Playwright tests
+      run: npx playwright test test.js --debug
 
     - name: Upload test results
       if: always()
