@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         npm init -y
-        npm install puppeteer@19.11.1
+        npm install puppeteer@19.11.1 http-server
     - name: Create test script
       run: |
         cat << 'EOT' > test.js
@@ -32,6 +32,8 @@ jobs:
         ];
         let passingTests = 0;
         let failedTests = 0;
+        let errors = [];
+
         async function testUrl(url) {
           const browser = await puppeteer.launch({
             headless: 'new',
@@ -40,38 +42,75 @@ jobs:
           const page = await browser.newPage();
           
           try {
-            await page.goto('file://' + path.resolve('index.html'), { waitUntil: 'networkidle0' });
+            await page.goto('http://localhost:8080', { waitUntil: 'networkidle0' });
             
+            // Test input validation
+            await page.type('#urlInput', 'https://invalid-url.com');
+            await page.click('.submit-btn');
+            const alertText = await page.evaluate(() => {
+              return new Promise(resolve => {
+                window.alert = resolve;
+              });
+            });
+            assert(alertText.includes('Invalid link'), 'Input validation failed');
+
+            // Test actual Numerade URL
+            await page.$eval('#urlInput', el => el.value = '');
             await page.type('#urlInput', url);
             await page.click('.submit-btn');
             
-            await page.waitForSelector('#videoOutput[src]', { timeout: 60000 });
+            // Wait for either video to load or error to occur
+            await Promise.race([
+              page.waitForSelector('#videoOutput[src]', { timeout: 60000 }),
+              page.waitForSelector('#overlay:not([style*="display: none"])', { timeout: 60000 })
+            ]);
             
             const videoSrc = await page.$eval('#videoOutput', el => el.src);
+            const overlayVisible = await page.$eval('#overlay', el => window.getComputedStyle(el).display !== 'none');
+            
+            if (overlayVisible) {
+              throw new Error('Video failed to load (overlay still visible)');
+            }
             
             assert(videoSrc, `Video source not found for ${url}`);
             assert(videoSrc.startsWith('https://cdn.numerade.com/'), `Invalid video source for ${url}: ${videoSrc}`);
+            
+            // Check for console errors
+            const consoleErrors = await page.evaluate(() => {
+              return window.consoleErrors || [];
+            });
+            assert(consoleErrors.length === 0, `Console errors detected: ${consoleErrors.join(', ')}`);
             
             console.log(`Test passed for ${url}`);
             passingTests++;
           } catch (error) {
             console.error(`Test failed for ${url}: ${error.message}`);
+            errors.push(`${url}: ${error.message}`);
             failedTests++;
           } finally {
             await browser.close();
           }
         }
+
         (async () => {
           for (const url of urls) {
             await testUrl(url);
           }
           console.log(`${passingTests} out of ${urls.length} tests passed successfully!`);
           console.log(`${failedTests} tests failed.`);
+          if (errors.length > 0) {
+            console.log('Errors encountered:');
+            errors.forEach(error => console.log(error));
+          }
           fs.writeFileSync('test-results.txt', `${passingTests},${failedTests}`);
+          fs.writeFileSync('test-errors.txt', errors.join('\n'));
         })();
         EOT
-    - name: Display test script content
-      run: cat test.js
+    - name: Modify index.html for testing
+      run: |
+        sed -i 's|</head>|<script>window.consoleErrors = []; console.error = function() { window.consoleErrors.push(Array.from(arguments).join(" ")); };</script></head>|' index.html
+    - name: Start HTTP server
+      run: npx http-server . &
     - name: Run tests
       run: node test.js
     - name: Update README
@@ -95,6 +134,14 @@ jobs:
         
         🕒 Last Tested: $current_date
         EOF
+        
+        if [ -s test-errors.txt ]; then
+          echo "" >> README.md
+          echo "### Errors" >> README.md
+          echo "\`\`\`" >> README.md
+          cat test-errors.txt >> README.md
+          echo "\`\`\`" >> README.md
+        fi
     - name: Commit changes
       run: |
         git config --local user.email "action@github.com"
