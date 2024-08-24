@@ -39,7 +39,7 @@ jobs:
             ignoreHTTPSErrors: true,
             video: 'on-first-retry',
             launchOptions: {
-              slowMo: 1000,
+              args: ['--no-sandbox', '--disable-setuid-sandbox']
             },
           },
           timeout: 60000,
@@ -93,10 +93,10 @@ jobs:
     - name: Start local server
       run: |
         http-server . -p 8080 &
-        sleep 5  # Give the server some time to start
+        sleep 5
 
     - name: Run Playwright tests
-      run: npx playwright test --debug
+      run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- npx playwright test --debug
 
     - name: Upload test results
       if: always()
