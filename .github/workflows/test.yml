@@ -1,0 +1,66 @@
+name: Daily Website Test
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies
+      run: |
+        npm install -g http-server
+        npm install playwright @playwright/test
+
+    - name: Start local server
+      run: |
+        http-server . -p 8080 &
+        sleep 5  # Give the server some time to start
+
+    - name: Run Playwright tests
+      run: |
+        cat << EOF > test.js
+        const { test, expect } = require('@playwright/test');
+
+        const urls = [
+          'https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/',
+          'https://www.numerade.com/questions/select-the-correct-alternative-from-the-given-choices-a-100-mathrmkm-long-cable-runs-at-1536-mathrmm/',
+          'https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/'
+        ];
+
+        test('Website functionality', async ({ page }) => {
+          await page.goto('http://localhost:8080');
+          
+          for (const url of urls) {
+            await page.fill('#inputContainer input', url);
+            await page.click('#inputContainer button');
+            
+            await page.waitForSelector('#videoWrapper iframe', { state: 'attached', timeout: 30000 });
+            
+            const videoFrame = await page.$('#videoWrapper iframe');
+            expect(videoFrame).not.toBeNull();
+            
+            await page.fill('#inputContainer input', '');
+          }
+        });
+        EOF
+
+        npx playwright test test.js
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: playwright-report
+        path: playwright-report/
