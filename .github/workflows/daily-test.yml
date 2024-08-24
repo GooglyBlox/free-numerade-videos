@@ -20,20 +20,31 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm install -g http-server
+        npm init -y
         npm install -D @playwright/test
+        npm install -g http-server
 
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
 
-    - name: Start local server
+    - name: Create Playwright config
       run: |
-        http-server . -p 8080 &
-        sleep 5  # Give the server some time to start
+        cat << EOT > playwright.config.js
+        module.exports = {
+          testDir: './',
+          testMatch: '**/*.spec.js',
+          use: {
+            headless: true,
+            viewport: { width: 1280, height: 720 },
+            ignoreHTTPSErrors: true,
+            video: 'on-first-retry',
+          },
+        };
+        EOT
 
     - name: Create test script
       run: |
-        cat << 'EOT' > test.js
+        cat << EOT > test.spec.js
         const { test, expect } = require('@playwright/test');
 
         const urls = [
@@ -48,7 +59,7 @@ jobs:
           console.log('Navigated to localhost');
           
           for (const url of urls) {
-            console.log(`Testing URL: ${url}`);
+            console.log(\`Testing URL: \${url}\`);
             await page.fill('#inputContainer input', url);
             await page.click('#inputContainer button');
             
@@ -66,15 +77,17 @@ jobs:
         });
         EOT
 
-    - name: Display test script content
-      run: cat test.js
+    - name: Start local server
+      run: |
+        http-server . -p 8080 &
+        sleep 5  # Give the server some time to start
 
     - name: Run Playwright tests
-      run: npx playwright test test.js --debug
+      run: npx playwright test
 
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v2
       with:
         name: playwright-report
-        path: test-results/
+        path: playwright-report/
