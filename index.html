@@ -42,7 +42,7 @@
     </div>
 
     <script>
-        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+        const corsProxy = 'https://cloudflare-cors-anywhere.cemcimyildiz.workers.dev/?';
 
         async function processLink() {
             const input = document.getElementById('urlInput').value;
@@ -80,7 +80,13 @@
 
         async function fetchVideoSrc(url) {
             try {
-                const response = await fetch(corsProxy + url);
+                const response = await fetch(corsProxy + url, {
+                    headers: {
+                        'x-cors-headers': JSON.stringify({
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                        })
+                    }
+                });
                 const html = await response.text();
                 
                 let videoId = null;
@@ -130,7 +136,14 @@
 
         async function checkResourceExists(url) {
             try {
-                const response = await fetch(corsProxy + url, { method: 'HEAD' });
+                const response = await fetch(corsProxy + url, {
+                    method: 'HEAD',
+                    headers: {
+                        'x-cors-headers': JSON.stringify({
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                        })
+                    }
+                });
                 return response.ok;
             } catch (error) {
                 console.error('Error checking resource:', error);
