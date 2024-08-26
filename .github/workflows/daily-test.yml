@@ -20,10 +20,11 @@ jobs:
     - name: Install dependencies
       run: |
         npm install playwright
+        npx playwright install chromium
 
     - name: Create test script
       run: |
-        cat << EOT > test_script.js
+        cat << 'EOT' > test_script.js
         const { chromium } = require('playwright');
 
         (async () => {
