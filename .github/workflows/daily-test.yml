@@ -20,11 +20,10 @@ jobs:
     - name: Install dependencies
       run: |
         npm install playwright
-        npx playwright install chromium
 
-    - name: Run website tests
+    - name: Create test script
       run: |
-        node << EOD
+        cat << EOT > test_script.js
         const { chromium } = require('playwright');
 
         (async () => {
@@ -38,7 +37,7 @@ jobs:
           ];
 
           try {
-            await page.goto('file://${process.env.GITHUB_WORKSPACE}/index.html');
+            await page.goto('file://' + process.env.GITHUB_WORKSPACE + '/index.html');
             
             for (const url of urls) {
               await page.fill('#urlInput', url);
@@ -66,4 +65,7 @@ jobs:
             await browser.close();
           }
         })();
-        EOD
+        EOT
+
+    - name: Run website tests
+      run: node test_script.js
