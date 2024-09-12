@@ -1,8 +1,11 @@
 # [Numerade](https://www.numerade.com) Video Viewer
 
+**Important Notice**: The hosted version of this project is no longer available due to a DMCA takedown request.
+
 The Numerade Video Viewer is a web application designed to provide easy access to Numerade videos without the need for a subscription. It serves as a proof of concept (POC) for a scraper that can bypass the subscription requirements on the Numerade platform.
 
 **Easy to Use**: Simply input the URL of the Numerade question, and the video viewer will retrieve the video for you.
+
 **Bypass Subscription**: This tool allows you to access Numerade's video content without needing a subscription.
 
 ## Option 1: Web Application
