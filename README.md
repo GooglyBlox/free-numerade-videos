@@ -1,6 +1,6 @@
 # [Numerade](https://www.numerade.com) Video Viewer
 
-**Important Notice**: The hosted version of this project is no longer available due to a DMCA takedown request.
+**Important Notice**: The hosted version of this project is no longer available due to a DMCA takedown request. You will have to manually deploy the web application on your machine.
 
 The Numerade Video Viewer is a web application designed to provide easy access to Numerade videos without the need for a subscription. It serves as a proof of concept (POC) for a scraper that can bypass the subscription requirements on the Numerade platform.
 
