@@ -2,7 +2,7 @@
 // @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
 // @updateURL    https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/userscript/numerade-video-viewer.user.js
-// @version      1.5
+// @version      1.6
 // @description  Unlock Numerade video answers for free.
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
@@ -16,6 +16,8 @@
 
 (function() {
     'use strict';
+
+    window.addEventListener('load', processLink);
 
     async function processLink() {
         try {
@@ -48,7 +50,8 @@
                         '.vjs-text-track-display',
                         '.vjs-loading-spinner',
                         '.vjs-big-play-button',
-                        '.vjs-control-bar'
+                        '.vjs-control-bar',
+                        '#register-modal'
                     ]);
                 } else {
                     console.error('Container element not found.');
@@ -91,9 +94,22 @@
             const metaElement = document.querySelector('meta[property="twitter:image"]');
             if (metaElement) {
                 const contentValue = metaElement.getAttribute('content');
-                const videoIdMatch = contentValue.match(/\/([^/]+)_large\.jpg$/);
+                const videoIdMatch = contentValue.match(/\/([^/]+?)_large\.jpg$/);
                 if (videoIdMatch) {
                     videoId = videoIdMatch[1];
+                }
+            }
+        }
+
+        if (!videoId) {
+            const videoElement = document.querySelector('video.vjs-tech');
+            if (videoElement) {
+                const posterUrl = videoElement.getAttribute('poster');
+                if (posterUrl) {
+                    const posterMatch = posterUrl.match(/\/([^/]+?)_[^/]+\.jpg$/);
+                    if (posterMatch) {
+                        videoId = posterMatch[1];
+                    }
                 }
             }
         }
@@ -141,5 +157,4 @@
         });
     }
 
-    processLink();
 })();
