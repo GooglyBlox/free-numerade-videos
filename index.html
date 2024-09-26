@@ -12,7 +12,6 @@
     <link rel="icon" href="no-more-numerade.ico" type="image/x-icon">
     <link rel="shortcut icon" href="no-more-numerade.ico" type="image/x-icon">
     <link rel="stylesheet" href="styles.css">
-    
 </head>
 
 <body>
@@ -55,7 +54,7 @@
         const corsProxy = 'https://cloudflare-cors-anywhere.cemcimyildiz.workers.dev/?';
 
         async function processLink() {
-            const input = document.getElementById('urlInput').value;
+            const input = document.getElementById('urlInput').value.trim();
             if (!validateInput(input)) {
                 alert('Invalid link! It must start with https://www.numerade.com/questions/ or https://www.numerade.com/ask/question/');
                 return;
@@ -64,8 +63,9 @@
             try {
                 const videoSrc = await fetchVideoSrc(input);
                 if (videoSrc) {
-                    document.getElementById('videoOutput').src = videoSrc;
-                    document.getElementById('videoOutput').onloadeddata = () => {
+                    const videoElement = document.getElementById('videoOutput');
+                    videoElement.src = videoSrc;
+                    videoElement.onloadeddata = () => {
                         toggleOverlay(false);
                         document.getElementById('container').classList.add('video-loaded');
                         document.getElementById('header').classList.add('video-loaded');
@@ -97,22 +97,51 @@
                         })
                     }
                 });
-                const html = await response.text();
-                
-                let videoId = null;
-                
-                const scriptMatch = html.match(/videoUrl\s*=\s*['"](.+?)['"]/);
-                if (scriptMatch) {
-                    videoId = scriptMatch[1];
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-                
+
+                const html = await response.text();
+
+                let videoId = null;
+
+                const scriptMatches = html.match(/videoUrl\s*=\s*['"]([^'"]+)['"]/i);
+                if (scriptMatches && scriptMatches[1]) {
+                    videoId = extractVideoIdFromUrl(scriptMatches[1]);
+                }
+
                 if (!videoId) {
-                    const metaMatch = html.match(/<meta property="twitter:image" content="[^"]*\/([^/]+)_large\.jpg"/);
-                    if (metaMatch) {
+                    const metaMatch = html.match(/<meta\s+property=["']twitter:image["']\s+content=["']https:\/\/cdn\.numerade\.com\/[^\/]+\/([^_]+)_large\.jpg["']/i);
+                    if (metaMatch && metaMatch[1]) {
                         videoId = metaMatch[1];
                     }
                 }
-                
+
+                if (!videoId) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const videoElement = doc.querySelector('video.vjs-tech, video');
+                    if (videoElement) {
+                        const posterUrl = videoElement.getAttribute('poster');
+                        if (posterUrl) {
+                            const posterMatch = posterUrl.match(/https:\/\/cdn\.numerade\.com\/[^\/]+\/([^_]+)_large\.jpg/i);
+                            if (posterMatch && posterMatch[1]) {
+                                videoId = posterMatch[1];
+                            }
+                        }
+                    }
+                }
+
+                if (!videoId) {
+                    const genericPosterMatch = html.match(/https:\/\/cdn\.numerade\.com\/[^\/]+\/([^_]+)_large\.jpg/i);
+                    if (genericPosterMatch && genericPosterMatch[1]) {
+                        videoId = genericPosterMatch[1];
+                    }
+                }
+
+                console.log('Extracted videoId:', videoId);
+
                 if (videoId) {
                     const baseUrls = [
                         'https://cdn.numerade.com/ask_previews/',
@@ -129,6 +158,7 @@
                             try {
                                 const exists = await checkResourceExists(videoSrc);
                                 if (exists) {
+                                    console.log('Found video source:', videoSrc);
                                     return videoSrc;
                                 }
                             } catch (error) {
@@ -136,11 +166,21 @@
                             }
                         }
                     }
+                } else {
+                    console.warn('videoId not found using all methods.');
                 }
             } catch (error) {
                 console.error('Error fetching video source:', error);
             }
 
+            return null;
+        }
+
+        function extractVideoIdFromUrl(videoUrl) {
+            const match = videoUrl.match(/https:\/\/cdn\.numerade\.com\/[^\/]+\/([^_]+)_large\.jpg/i);
+            if (match && match[1]) {
+                return match[1];
+            }
             return null;
         }
 
@@ -171,12 +211,6 @@
                 setTimeout(() => overlay.style.display = 'none', 500);
             }
         }
-
-        document.addEventListener('DOMContentLoaded', (event) => {
-            setTimeout(() => {
-                document.getElementById('toast-container').classList.add('show-toast');
-            }, 2000);
-        });
     </script>
 </body>
 
