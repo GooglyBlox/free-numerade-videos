@@ -9,64 +9,72 @@ jobs:
   test_website:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
-    - name: Install dependencies
-      run: |
-        npm install playwright
-        npx playwright install chromium
+      - name: Install dependencies
+        run: |
+          npm install playwright
+          npx playwright install chromium
 
-    - name: Create test script
-      run: |
-        cat << 'EOT' > test_script.js
-        const { chromium } = require('playwright');
+      - name: Create test script
+        run: |
+          cat << 'EOT' > test_script.js
+          const { chromium } = require('playwright');
 
-        (async () => {
-          const browser = await chromium.launch();
-          const page = await browser.newPage();
-          
-          const urls = [
-            'https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/',
-            'https://www.numerade.com/questions/select-the-correct-alternative-from-the-given-choices-a-100-mathrmkm-long-cable-runs-at-1536-mathrmm/',
-            'https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/'
-          ];
-
-          try {
-            await page.goto('file://' + process.env.GITHUB_WORKSPACE + '/index.html');
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
             
-            for (const url of urls) {
-              await page.fill('#urlInput', url);
-              await page.click('.submit-btn');
+            const urls = [
+              'https://www.numerade.com/ask/question/a-gas-mixture-is-made-from-156-g-of-bromine-gas-and-138-g-of-chlorine-gas-the-total-pressure-of-the-mixture-is-0632-atm-what-is-the-partial-pressure-of-the-bromine-gas/',
+              'https://www.numerade.com/questions/select-the-correct-alternative-from-the-given-choices-a-100-mathrmkm-long-cable-runs-at-1536-mathrmm/',
+              'https://www.numerade.com/questions/indicate-whether-each-of-the-following-nuclides-lies-within-the-belt-of-stability-in-figure-212-a-ne/'
+            ];
+
+            try {
+              await page.goto('file://' + process.env.GITHUB_WORKSPACE + '/index.html');
               
-              // Wait for the video to load or for an error to occur
-              await Promise.race([
-                page.waitForSelector('video[src]', { state: 'attached', timeout: 30000 }),
-                page.waitForSelector('.error-message', { state: 'attached', timeout: 30000 })
-              ]);
-              
-              const videoSrc = await page.$eval('video', el => el.src);
-              if (!videoSrc) {
-                throw new Error(`Failed to load video for URL: ${url}`);
+              for (const url of urls) {
+                await page.fill('#urlInput', url);
+                await page.click('.submit-btn');
+                
+                await Promise.race([
+                  page.waitForSelector('video[src]', { state: 'attached', timeout: 30000 }),
+                  page.waitForSelector('.error-message', { state: 'attached', timeout: 30000 })
+                ]);
+                
+                const videoSrc = await page.$eval('video', el => el.src);
+                if (!videoSrc) {
+                  throw new Error(`Failed to load video for URL: ${url}`);
+                }
+                
+                console.log(`Successfully loaded video for URL: ${url}`);
               }
               
-              console.log(`Successfully loaded video for URL: ${url}`);
+              console.log('All tests passed successfully!');
+            } catch (error) {
+              console.error('Test failed:', error.message);
+              process.exit(1);
+            } finally {
+              await browser.close();
             }
-            
-            console.log('All tests passed successfully!');
-          } catch (error) {
-            console.error('Test failed:', error.message);
-            process.exit(1);
-          } finally {
-            await browser.close();
-          }
-        })();
-        EOT
+          })();
+          EOT
 
-    - name: Run website tests
-      run: node test_script.js
+      - name: Run website tests
+        run: node test_script.js
+
+      - name: Notify Discord on Failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{"content": "<@327559129705218049> The **Daily Website Test** workflow has failed. Please check the logs for more details."}' \
+          $DISCORD_WEBHOOK_URL
