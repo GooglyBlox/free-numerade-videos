@@ -1,6 +1,15 @@
 # [Numerade](https://www.numerade.com) Video Viewer
 
-**Important Notice**: The hosted version of this project is no longer available due to a DMCA takedown request. You will have to manually deploy the web application on your machine.
+## ⚠️ Disclaimer: Issues with the Script?
+
+> **Not working?** It happens! Numerade makes a lot of unnecessary DOM changes that can break my method.  
+> If this is currently the case, please [open an issue](https://github.com/GooglyBlox/free-numerade-videos/issues)!  
+> I usually fix the script within half an hour of noticing that it broke.
+
+> **Important Notice**: The hosted version of this project is no longer available due to a DMCA takedown request. You will have to manually deploy the web application on your machine.
+
+---
+
 
 The Numerade Video Viewer is a web application designed to provide easy access to Numerade videos without the need for a subscription. It serves as a proof of concept (POC) for a scraper that can bypass the subscription requirements on the Numerade platform.
 
