@@ -6,7 +6,7 @@
 > If this is currently the case, please [open an issue](https://github.com/GooglyBlox/free-numerade-videos/issues)!  
 > I usually fix the script within half an hour of noticing that it broke.
 
-> **Important Notice**: The hosted version of this project is no longer available due to a DMCA takedown request. You will have to manually deploy the web application on your machine.
+> **Important Notice**: The hosted version of this project's website is no longer available due to a DMCA takedown request. You will have to manually deploy the web application on your machine.
 
 ---
 
