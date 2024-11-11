@@ -2,7 +2,7 @@
 // @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
 // @updateURL    https://raw.githubusercontent.com/GooglyBlox/free-numerade-videos/main/userscript/numerade-video-viewer.user.js
-// @version      1.6
+// @version      1.7
 // @description  Unlock Numerade video answers for free.
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
@@ -17,55 +17,102 @@
 (function() {
     'use strict';
 
-    window.addEventListener('load', processLink);
-
-    async function processLink() {
-        try {
-            const videoSrc = await fetchVideoSrc();
-            if (videoSrc) {
-                const videoElement = document.createElement('video');
-                videoElement.src = videoSrc;
-                videoElement.controls = true;
-                videoElement.className = 'video-js vjs-fill vjs-big-play-centered video-player--is-large';
-                videoElement.style.width = '100%';
-                videoElement.style.height = '500px';
-
-                const containerElement = document.querySelector('.solution-registration-form-r.multi-part-form.multi-part-visible[data-form-order="1"]');
-
-                if (containerElement) {
-                    const existingVideoElement = containerElement.querySelector('video');
-                    if (existingVideoElement) {
-                        existingVideoElement.parentNode.replaceChild(videoElement, existingVideoElement);
-                    } else {
-                        containerElement.appendChild(videoElement);
-                    }
-
-                    const purpleOverlayElement = containerElement.querySelector('.purple-overlay');
-                    if (purpleOverlayElement) {
-                        purpleOverlayElement.remove();
-                    }
-
-                    removeElements([
-                        '.vjs-poster',
-                        '.vjs-text-track-display',
-                        '.vjs-loading-spinner',
-                        '.vjs-big-play-button',
-                        '.vjs-control-bar',
-                        '#register-modal'
-                    ]);
-                } else {
-                    console.error('Container element not found.');
-                }
-            } else {
-                alert('Failed to load the video.');
+    const CONFIG = {
+        videoStyles: `
+            .video-js.vjs-16-9 {
+                padding-top: 0 !important;
             }
+        `,
+        videoConfig: {
+            className: 'video-js vjs-fill vjs-big-play-centered video-player--is-large',
+            width: '100%',
+            height: '500px'
+        },
+        baseUrls: [
+            'https://cdn.numerade.com/ask_previews/',
+            'https://cdn.numerade.com/project-universal/previews/',
+            'https://cdn.numerade.com/ask_video/',
+            'https://cdn.numerade.com/project-universal/encoded/',
+            'https://cdn.numerade.com/encoded/'
+        ],
+        fileTypes: ['webm', 'mp4', 'm4a'],
+        elementsToRemove: [
+            '.vjs-poster',
+            '.vjs-text-track-display',
+            '.vjs-loading-spinner',
+            '.vjs-big-play-button',
+            '.vjs-control-bar',
+            '#register-modal'
+        ]
+    };
+
+    function initialize() {
+        injectStyles();
+        window.addEventListener('load', processVideo);
+    }
+
+    function injectStyles() {
+        const style = document.createElement('style');
+        style.textContent = CONFIG.videoStyles;
+        document.head.appendChild(style);
+    }
+
+    async function processVideo() {
+        try {
+            const videoSrc = await findVideoSource();
+            if (!videoSrc) {
+                throw new Error('Failed to find video source');
+            }
+
+            const videoElement = createVideoElement(videoSrc);
+            const container = findVideoContainer();
+            
+            if (!container) {
+                throw new Error('Video container not found');
+            }
+
+            replaceOrAppendVideo(container, videoElement);
+            cleanupInterface(container);
         } catch (error) {
-            alert('Error: ' + error.message);
+            console.error('Video processing failed:', error);
+            alert(`Error: ${error.message}`);
         }
     }
 
-    function removeElements(selectors) {
-        selectors.forEach(selector => {
+    function createVideoElement(src) {
+        const video = document.createElement('video');
+        video.src = src;
+        video.controls = true;
+        Object.assign(video.style, {
+            width: CONFIG.videoConfig.width,
+            height: CONFIG.videoConfig.height
+        });
+        video.className = CONFIG.videoConfig.className;
+        return video;
+    }
+
+    function findVideoContainer() {
+        return document.querySelector(
+            '.solution-registration-form-r.multi-part-form.multi-part-visible[data-form-order="1"]'
+        );
+    }
+
+    function replaceOrAppendVideo(container, videoElement) {
+        const existingVideo = container.querySelector('video');
+        if (existingVideo) {
+            existingVideo.parentNode.replaceChild(videoElement, existingVideo);
+        } else {
+            container.appendChild(videoElement);
+        }
+    }
+
+    function cleanupInterface(container) {
+        const purpleOverlay = container.querySelector('.purple-overlay');
+        if (purpleOverlay) {
+            purpleOverlay.remove();
+        }
+        
+        CONFIG.elementsToRemove.forEach(selector => {
             const element = document.querySelector(selector);
             if (element) {
                 element.remove();
@@ -73,72 +120,75 @@
         });
     }
 
-    async function fetchVideoSrc() {
-        let videoId = null;
-
-        const scriptElements = document.getElementsByTagName('script');
-        for (const scriptElement of scriptElements) {
-            if (!scriptElement.src) {
-                const scriptText = scriptElement.textContent;
-                if (scriptText.includes('videoUrl')) {
-                    const videoUrlMatch = scriptText.match(/videoUrl\s*=\s*['"](.+?)['"]/);
-                    if (videoUrlMatch) {
-                        videoId = videoUrlMatch[1];
-                        break;
-                    }
-                }
-            }
-        }
-
+    async function findVideoSource() {
+        const videoId = await extractVideoId();
         if (!videoId) {
-            const metaElement = document.querySelector('meta[property="twitter:image"]');
-            if (metaElement) {
-                const contentValue = metaElement.getAttribute('content');
-                const videoIdMatch = contentValue.match(/\/([^/]+?)_large\.jpg$/);
-                if (videoIdMatch) {
-                    videoId = videoIdMatch[1];
+            throw new Error('Could not find video ID');
+        }
+
+        return await findValidVideoUrl(videoId);
+    }
+
+    async function extractVideoId() {
+        const extractors = [
+            extractFromScripts,
+            extractFromMetaTags,
+            extractFromPoster
+        ];
+
+        for (const extractor of extractors) {
+            const videoId = await extractor();
+            if (videoId) return videoId;
+        }
+
+        return null;
+    }
+
+    function extractFromScripts() {
+        const scripts = document.getElementsByTagName('script');
+        for (const script of scripts) {
+            if (!script.src) {
+                const match = script.textContent.match(/videoUrl\s*=\s*['"](.+?)['"]/);
+                if (match) return match[1];
+            }
+        }
+        return null;
+    }
+
+    function extractFromMetaTags() {
+        const metaElement = document.querySelector('meta[property="twitter:image"]');
+        if (metaElement) {
+            const content = metaElement.getAttribute('content');
+            const match = content.match(/\/([^/]+?)_large\.jpg$/);
+            return match ? match[1] : null;
+        }
+        return null;
+    }
+
+    function extractFromPoster() {
+        const videoElement = document.querySelector('video.vjs-tech');
+        if (videoElement) {
+            const poster = videoElement.getAttribute('poster');
+            if (poster) {
+                const match = poster.match(/\/([^/]+?)_[^/]+\.jpg$/);
+                return match ? match[1] : null;
+            }
+        }
+        return null;
+    }
+
+    async function findValidVideoUrl(videoId) {
+        for (const baseUrl of CONFIG.baseUrls) {
+            for (const fileType of CONFIG.fileTypes) {
+                const url = `${baseUrl}${videoId}.${fileType}`;
+                try {
+                    const exists = await checkResourceExists(url);
+                    if (exists) return url;
+                } catch (error) {
+                    console.error(`Failed to check URL ${url}:`, error);
                 }
             }
         }
-
-        if (!videoId) {
-            const videoElement = document.querySelector('video.vjs-tech');
-            if (videoElement) {
-                const posterUrl = videoElement.getAttribute('poster');
-                if (posterUrl) {
-                    const posterMatch = posterUrl.match(/\/([^/]+?)_[^/]+\.jpg$/);
-                    if (posterMatch) {
-                        videoId = posterMatch[1];
-                    }
-                }
-            }
-        }
-
-        if (videoId) {
-            const baseUrls = [
-                'https://cdn.numerade.com/ask_previews/',
-                'https://cdn.numerade.com/project-universal/previews/',
-                'https://cdn.numerade.com/ask_video/',
-                'https://cdn.numerade.com/project-universal/encoded/',
-                'https://cdn.numerade.com/encoded/'
-            ];
-            const fileTypes = ['webm', 'mp4', 'm4a'];
-
-            for (const baseUrl of baseUrls) {
-                for (const fileType of fileTypes) {
-                    const videoSrc = `${baseUrl}${videoId}.${fileType}`;
-                    try {
-                        const exists = await checkResourceExists(videoSrc);
-                        if (exists) {
-                            return videoSrc;
-                        }
-                    } catch (error) {
-                        console.error(`Error checking video source ${videoSrc}:`, error);
-                    }
-                }
-            }
-        }
-
         return null;
     }
 
@@ -147,14 +197,11 @@
             GM_xmlhttpRequest({
                 method: 'HEAD',
                 url: url,
-                onload: function(response) {
-                    resolve(response.status === 200);
-                },
-                onerror: function(error) {
-                    reject(error);
-                }
+                onload: response => resolve(response.status === 200),
+                onerror: reject
             });
         });
     }
 
+    initialize();
 })();
