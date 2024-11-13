@@ -1,16 +1,23 @@
-# [Numerade](https://www.numerade.com) Video Viewer
+# [Numerade](https://www.numerade.com) Video Viewer [ARCHIVED]
 
-## ⚠️ Disclaimer: Issues with the Script?
+## ⚠️ Project Status: Archived
 
-> **Not working?** It happens! Numerade makes a lot of unnecessary DOM changes that can break my method.  
-> If this is currently the case, please [open an issue](https://github.com/GooglyBlox/free-numerade-videos/issues)!  
-> I usually fix the script within half an hour of noticing that it broke.
+This project has been archived due to Numerade implementing CloudFront signed URLs for their video content. The current method used by this script is no longer functional as the CDN now requires proper authentication via Key-Pair-Id and signatures.
 
-> **Important Notice**: The hosted version of this project's website is no longer available due to a DMCA takedown request. You will have to manually deploy the web application on your machine.
+### Potential Future Development
 
----
+As noted [in response to a related issue](https://github.com/GooglyBlox/free-numerade-videos/issues/2):
+> Looks like I was right, CloudFront signing seems to be the case. The method I use for this script is definitely unusable now. There's potential for handling this how [lucida](https://www.npmjs.com/package/lucida) handles it, where you use premium accounts to serve the content to users, but unfortunately, I don't think Numerade is so big of a platform that people would donate their paid accounts to help non-paying users.
+>
+> I'll archive this repository for now, but if anyone at any point donates me a premium account to run some tests, I might be able to revive the project!
 
+If you're interested in donating a premium Numerade account to help test and potentially revive this project, please contact me on any of my socials: 
+- Discord: goog.l (327559129705218049)
+- Instagram: [GooglyBlox_Improved](https://www.instagram.com/googlyblox_improved/)
+- Twitter: [GooglyBlox](https://x.com/GooglyBlox)
 
+## Original Project Description
+<details>
 The Numerade Video Viewer is a web application designed to provide easy access to Numerade videos without the need for a subscription. It serves as a proof of concept (POC) for a scraper that can bypass the subscription requirements on the Numerade platform.
 
 **Easy to Use**: Simply input the URL of the Numerade question, and the video viewer will retrieve the video for you.
@@ -37,3 +44,4 @@ Alternatively, you can use the Numerade Video Viewer as a userscript. This allow
 This application is a proof of concept and is intended for educational purposes only. It demonstrates the technical possibility of scraping web content and should not be used to infringe on the rights of Numerade or any other service.
 
 Please note that this tool should be used responsibly and within the confines of legal and ethical boundaries. This project is not affiliated with Numerade.
+</details>
