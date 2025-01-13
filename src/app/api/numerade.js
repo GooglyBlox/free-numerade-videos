@@ -1,3 +1,5 @@
+// god this is so jank but I have literally no idea how else to get puppeteer to work on vercel
+
 const chromium = require('@sparticuz/chromium');
 let puppeteer;
 if (process.env.VERCEL) {
