@@ -26,34 +26,61 @@ async function loginToNumerade(page) {
   console.log('Starting login process...');
   try {
     console.log('Navigating to login page...');
-    await page.goto('https://www.numerade.com/login/', {
+    const response = await page.goto('https://www.numerade.com/login/', {
       waitUntil: 'domcontentloaded',
-      timeout: 15000
+      timeout: 10000
     });
+
+    if (!response.ok()) {
+      throw new Error(`Failed to load login page: ${response.status()}`);
+    }
     console.log('Login page loaded');
 
-    console.log('Waiting for email input...');
-    await page.waitForSelector('[data-test-id="user-email"]', { timeout: 10000 });
-    console.log('Email input found');
+    console.log('Waiting for form elements...');
+    await page.waitForSelector('#signUpForm', { timeout: 5000 });
+    await page.waitForSelector('[name="csrfmiddlewaretoken"]', { timeout: 5000 });
+    await page.waitForSelector('[data-test-id="user-email"]', { timeout: 5000 });
+    await page.waitForSelector('[data-test-id="user-password"]', { timeout: 5000 });
+    await page.waitForSelector('[data-test-id="login-button"]', { timeout: 5000 });
+    console.log('Form elements found');
 
-    console.log('Waiting for password input...');
-    await page.waitForSelector('[data-test-id="user-password"]', { timeout: 10000 });
-    console.log('Password input found');
+    const csrfToken = await page.$eval('[name="csrfmiddlewaretoken"]', el => el.value);
+    console.log('CSRF token obtained');
 
-    console.log('Typing credentials...');
-    await Promise.all([
-      page.type('[data-test-id="user-email"]', process.env.NUMERADE_EMAIL || ''),
-      page.type('[data-test-id="user-password"]', process.env.NUMERADE_PASSWORD || '')
-    ]);
-    console.log('Credentials typed');
+    console.log('Submitting form...');
+    await page.evaluate(
+      ({ email, password, csrf }) => {
+        const form = document.getElementById('signUpForm');
+        const emailInput = form.querySelector('[data-test-id="user-email"]');
+        const passwordInput = form.querySelector('[data-test-id="user-password"]');
+        const csrfInput = form.querySelector('[name="csrfmiddlewaretoken"]');
+        
+        emailInput.value = email;
+        passwordInput.value = password;
+        csrfInput.value = csrf;
+        
+        form.submit();
+      },
+      { 
+        email: process.env.NUMERADE_EMAIL || '',
+        password: process.env.NUMERADE_PASSWORD || '',
+        csrf: csrfToken 
+      }
+    );
 
-    console.log('Clicking login button...');
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }),
-      page.click('[data-test-id="login-button"]')
-    ]);
-    console.log('Login navigation complete');
+    await page.waitForNavigation({ 
+      waitUntil: 'domcontentloaded',
+      timeout: 10000 
+    });
 
+    const currentUrl = page.url();
+    console.log('Current URL after login:', currentUrl);
+    
+    if (currentUrl.includes('/login')) {
+      throw new Error('Still on login page after attempt');
+    }
+
+    console.log('Login successful');
     return true;
   } catch (error) {
     console.error('Login error:', error);
@@ -62,13 +89,13 @@ async function loginToNumerade(page) {
 }
 
 module.exports = async (req, res) => {
+  const startTime = Date.now();
   console.log('Request received:', {
     method: req.method,
     query: req.query,
     body: req.method === 'POST' ? req.body : undefined
   });
 
-  const startTime = Date.now();
   const url = req.method === 'POST' ? req.body.url : req.query.url;
   const directDownload = req.method === 'GET';
 
@@ -92,7 +119,8 @@ module.exports = async (req, res) => {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-accelerated-2d-canvas',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-web-security'
       ],
       defaultViewport: {
         width: 1280,
@@ -100,7 +128,7 @@ module.exports = async (req, res) => {
       },
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      timeout: 15000
+      timeout: 10000
     });
     console.log('Browser launched');
 
@@ -111,6 +139,7 @@ module.exports = async (req, res) => {
     page.on('request', request => {
       if (
         request.resourceType() === 'image' ||
+        request.resourceType() === 'font' ||
         request.url().includes('google-analytics') ||
         request.url().includes('doubleclick') ||
         request.url().includes('facebook') ||
@@ -124,42 +153,54 @@ module.exports = async (req, res) => {
       }
     });
 
+    page.setDefaultTimeout(10000);
+    page.setDefaultNavigationTimeout(10000);
+
     const loginSuccess = await loginToNumerade(page);
     if (!loginSuccess) {
       throw new Error('Login failed');
     }
 
     console.log('Navigating to video page:', url);
-    await page.goto(url, { 
+    const videoPageResponse = await page.goto(url, { 
       waitUntil: 'domcontentloaded',
-      timeout: 15000
+      timeout: 10000
     });
+
+    if (!videoPageResponse.ok()) {
+      throw new Error(`Failed to load video page: ${videoPageResponse.status()}`);
+    }
     console.log('Video page loaded');
 
-    // Wait a bit for the video player to initialize
-    await page.waitForTimeout(2000);
+    console.log('Waiting for video element...');
+    let retries = 3;
+    let videoInfo;
+    
+    while (retries > 0) {
+      try {
+        await page.waitForTimeout(2000);
+        videoInfo = await page.evaluate(() => {
+          const videoElement = 
+            document.querySelector('#my-video_html5_api') || 
+            document.querySelector('video') ||
+            document.querySelector('[data-test-id="video-player"] video');
 
-    console.log('Checking for video element...');
-    const videoInfo = await page.evaluate(() => {
-      // Try multiple possible video element selectors
-      const videoElement = 
-        document.querySelector('#my-video_html5_api') || 
-        document.querySelector('video') ||
-        document.querySelector('[data-test-id="video-player"] video');
+          if (!videoElement?.src) {
+            throw new Error('Video source not found');
+          }
 
-      if (!videoElement?.src) {
-        throw new Error('Video source not found');
+          return {
+            url: videoElement.src || videoElement.dataset.src,
+            title: document.title.replace(' | Numerade', '').trim(),
+          };
+        });
+        break;
+      } catch (error) {
+        console.log(`Retry ${4 - retries} failed:`, error.message);
+        retries--;
+        if (retries === 0) throw error;
       }
-
-      // Get both the direct src and data-src if available
-      const videoSrc = videoElement.src || videoElement.dataset.src;
-      
-      return {
-        url: videoSrc,
-        title: document.title.replace(' | Numerade', '').trim(),
-      };
-    });
-    console.log('Video info:', videoInfo);
+    }
 
     await browser.close();
     console.log('Browser closed');
