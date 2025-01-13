@@ -1,47 +1,36 @@
-# [Numerade](https://www.numerade.com) Video Viewer [ARCHIVED]
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## ⚠️ Project Status: Archived
+## Getting Started
 
-This project has been archived due to Numerade implementing CloudFront signed URLs for their video content. The current method used by this script is no longer functional as the CDN now requires proper authentication via Key-Pair-Id and signatures.
+First, run the development server:
 
-### Potential Future Development
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-As noted [in response to a related issue](https://github.com/GooglyBlox/free-numerade-videos/issues/2):
-> Looks like I was right, CloudFront signing seems to be the case. The method I use for this script is definitely unusable now. There's potential for handling this how [lucida](https://www.npmjs.com/package/lucida) handles it, where you use premium accounts to serve the content to users, but unfortunately, I don't think Numerade is so big of a platform that people would donate their paid accounts to help non-paying users.
->
-> I'll archive this repository for now, but if anyone at any point donates me a premium account to run some tests, I might be able to revive the project!
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-If you're interested in donating a premium Numerade account to help test and potentially revive this project, please contact me on any of my socials: 
-- Discord: goog.l (327559129705218049)
-- Instagram: [GooglyBlox_Improved](https://www.instagram.com/googlyblox_improved/)
-- Twitter: [GooglyBlox](https://x.com/GooglyBlox)
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Original Project Description
-<details>
-The Numerade Video Viewer is a web application designed to provide easy access to Numerade videos without the need for a subscription. It serves as a proof of concept (POC) for a scraper that can bypass the subscription requirements on the Numerade platform.
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-**Easy to Use**: Simply input the URL of the Numerade question, and the video viewer will retrieve the video for you.
+## Learn More
 
-**Bypass Subscription**: This tool allows you to access Numerade's video content without needing a subscription.
+To learn more about Next.js, take a look at the following resources:
 
-## Option 1: Web Application
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Open the Numerade Video Viewer website by cloning this repository to your machine.
-2. In the input box, paste the URL of the Numerade question you want to view. The URL should start with `https://www.numerade.com/questions/` or `https://www.numerade.com/ask/question/`.
-3. Click the `Submit` button to process the link.
-4. The video will be displayed on the screen if available. You can watch it directly within the web application.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Option 2: Userscript
-Alternatively, you can use the Numerade Video Viewer as a userscript. This allows you to automatically fetch and display the unlocked video directly on the Numerade question page.
+## Deploy on Vercel
 
-[![Install Userscript](https://img.shields.io/badge/Install-Userscript-green?style=for-the-badge)](https://github.com/GooglyBlox/free-numerade-videos/raw/main/userscript/numerade-video-viewer.user.js)
-1. Install a userscript manager extension like [Tampermonkey](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo) or [Violentmonkey](https://chromewebstore.google.com/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdag) in your browser.
-2. Click on the "Install Userscript" button above to install the userscript.
-3. Navigate to a valid Numerade question page, and the userscript will automatically execute, fetching and displaying the unlocked video where there would normally be a static paywall image.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Disclaimer
-
-This application is a proof of concept and is intended for educational purposes only. It demonstrates the technical possibility of scraping web content and should not be used to infringe on the rights of Numerade or any other service.
-
-Please note that this tool should be used responsibly and within the confines of legal and ethical boundaries. This project is not affiliated with Numerade.
-</details>
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
