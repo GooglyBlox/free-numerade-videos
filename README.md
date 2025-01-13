@@ -1,6 +1,6 @@
 # [Numerade](https://www.numerade.com) Video Viewer
 
-Thanks to an anonymous donor providing premium account access, this project has been revived! While the project was previously archived due to Numerade implementing CloudFront signed URLs that required proper authentication via Key-Pair-Id and signatures, we now have a working solution.
+Thanks to an anonymous donor providing premium account access, this project has been revived! While the project was previously archived due to Numerade implementing CloudFront signed URLs that required proper authentication via Key-Pair-Id and signatures, we now have a working solution. Stay tuned for updates in the coming days.
 
 ## Original Project Description
 <details>
