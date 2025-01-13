@@ -37,11 +37,12 @@ export default function Home() {
                   <h3 className="font-semibold mb-2">POST Request</h3>
                   <code className="font-mono text-sm bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
                     POST /api/numerade
-                    {"\n"}Content-Type: application/json
-                    {"\n"}
-                    {"\n"}{"{"} 
-                    {"\n"}  "url": "https://www.numerade.com/questions/your-question-url"
-                    {"\n"}{"}"}</code>
+                    {'\n'}Content-Type: application/json
+                    {'\n'}
+                    {'\n'}{'{'} 
+                    {'\n'}  &quot;url&quot;: &quot;https://www.numerade.com/questions/your-question-url&quot;
+                    {'\n'}{'}'}
+                  </code>
                   <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                     Returns a JSON response with video information.
                   </p>
@@ -53,10 +54,11 @@ export default function Home() {
               <h2 className="text-2xl font-semibold">Response Format</h2>
               <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
                 <code className="font-mono text-sm bg-zinc-100 dark:bg-zinc-800 p-2 rounded block">
-                  {"{"}
-                  {"\n"}  "url": "https://cdn.numerade.com/encoded/...",
-                  {"\n"}  "title": "Question Title"
-                  {"\n"}{"}"}</code>
+                  {'{'}
+                  {'\n'}  &quot;url&quot;: &quot;https://cdn.numerade.com/encoded/...&quot;,
+                  {'\n'}  &quot;title&quot;: &quot;Question Title&quot;
+                  {'\n'}{'}'}
+                </code>
               </div>
             </div>
           </div>
