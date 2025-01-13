@@ -1,17 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Numerade Video Fetcher</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numerade Video Viewer API</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <input type="text" id="urlInput" placeholder="Enter a Numerade URL" />
-        <button id="fetchButton">Fetch Video</button>
-        <div id="videoLinkContainer"></div>
+    <div class="min-h-screen">
+        <header class="header">
+            <div class="container header-content">
+                <span class="logo">Numerade Video Viewer API</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="content-section">
+                <div class="title-section">
+                    <h1>Numerade Video Access API</h1>
+                    <p class="subtitle">
+                        A simple API endpoint for programmatically accessing Numerade educational videos.
+                    </p>
+                </div>
+
+                <div class="api-section">
+                    <div class="api-usage">
+                        <h2>API Usage</h2>
+                        
+                        <div class="endpoints">
+                            <div class="endpoint-box">
+                                <h3>GET Request</h3>
+                                <code class="code-block">
+                                    GET /api/numerade?url=https://www.numerade.com/questions/your-question-url
+                                </code>
+                                <p class="endpoint-description">
+                                    Redirects directly to the video file.
+                                </p>
+                            </div>
+
+                            <div class="endpoint-box">
+                                <h3>POST Request</h3>
+                                <code class="code-block">
+                                    POST /api/numerade<br>
+                                    Content-Type: application/json<br>
+                                    <br>
+                                    {<br>
+                                    &nbsp;&nbsp;"url": "https://www.numerade.com/questions/your-question-url"<br>
+                                    }
+                                </code>
+                                <p class="endpoint-description">
+                                    Returns a JSON response with video information.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="response-format">
+                        <h2>Response Format</h2>
+                        <div class="endpoint-box">
+                            <code class="code-block">
+                                {<br>
+                                &nbsp;&nbsp;"url": "https://cdn.numerade.com/encoded/...",<br>
+                                &nbsp;&nbsp;"title": "Question Title"<br>
+                                }
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="container footer-content">
+                <span class="footer-text">
+                    Created by GooglyBlox
+                </span>
+                <div class="social-links">
+                    <a href="https://x.com/GooglyBlox" target="_blank" rel="noopener noreferrer" class="social-link">
+                        Twitter
+                    </a>
+                    <a href="https://github.com/GooglyBlox" target="_blank" rel="noopener noreferrer" class="social-link">
+                        GitHub
+                    </a>
+                </div>
+            </div>
+        </footer>
     </div>
-    <script src="script.js"></script>
 </body>
 </html>
