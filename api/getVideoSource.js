@@ -173,34 +173,22 @@ module.exports = async (req, res) => {
     console.log('Video page loaded');
 
     console.log('Waiting for video element...');
-    let retries = 3;
-    let videoInfo;
+    await page.waitForSelector('#my-video_html5_api', { timeout: 10000 });
     
-    while (retries > 0) {
-      try {
-        await page.waitForTimeout(2000);
-        videoInfo = await page.evaluate(() => {
-          const videoElement = 
-            document.querySelector('#my-video_html5_api') || 
-            document.querySelector('video') ||
-            document.querySelector('[data-test-id="video-player"] video');
-
-          if (!videoElement?.src) {
-            throw new Error('Video source not found');
-          }
-
-          return {
-            url: videoElement.src || videoElement.dataset.src,
-            title: document.title.replace(' | Numerade', '').trim(),
-          };
-        });
-        break;
-      } catch (error) {
-        console.log(`Retry ${4 - retries} failed:`, error.message);
-        retries--;
-        if (retries === 0) throw error;
+    console.log('Video element found, extracting info...');
+    const videoInfo = await page.evaluate(() => {
+      const videoElement = document.querySelector('#my-video_html5_api');
+      const videoContainer = document.querySelector('.video-redesign__video-container');
+      
+      if (!videoElement?.src) {
+        throw new Error('Video source not found');
       }
-    }
+
+      return {
+        url: videoElement.src,
+        title: videoContainer ? videoContainer.getAttribute('data-video-title') || document.title.replace(' | Numerade', '').trim() : document.title.replace(' | Numerade', '').trim()
+      };
+    });
 
     await browser.close();
     console.log('Browser closed');
