@@ -3,85 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Numerade Video Viewer API</title>
+    <title>Numerade Video API</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="min-h-screen">
-        <header class="header">
-            <div class="container header-content">
-                <span class="logo">Numerade Video Viewer API</span>
+    <div class="wrapper">
+        <header>
+            <div class="container">
+                <h1>Numerade Video API</h1>
             </div>
         </header>
 
-        <main class="main-content">
-            <section class="content-section">
-                <div class="title-section">
-                    <h1>Numerade Video Access API</h1>
-                    <p class="subtitle">
-                        A simple API endpoint for programmatically accessing Numerade educational videos.
-                    </p>
+        <main class="container">
+            <section class="intro">
+                <h2>API Documentation</h2>
+                <p>Access Numerade educational videos programmatically through our API endpoints.</p>
+            </section>
+
+            <section class="endpoints">
+                <div class="endpoint">
+                    <h3>GET Endpoint</h3>
+                    <code><span class="method">GET</span> /api/numerade?url=https://www.numerade.com/questions/your-question-url</code>
+                    <p>Redirects directly to the video file</p>
                 </div>
 
-                <div class="api-section">
-                    <div class="api-usage">
-                        <h2>API Usage</h2>
-                        
-                        <div class="endpoints">
-                            <div class="endpoint-box">
-                                <h3>GET Request</h3>
-                                <code class="code-block">
-                                    GET /api/numerade?url=https://www.numerade.com/questions/your-question-url
-                                </code>
-                                <p class="endpoint-description">
-                                    Redirects directly to the video file.
-                                </p>
-                            </div>
+                <div class="endpoint">
+                    <h3>POST Endpoint</h3>
+                    <code><span class="method">POST</span> /api/numerade
+Content-Type: application/json
 
-                            <div class="endpoint-box">
-                                <h3>POST Request</h3>
-                                <code class="code-block">
-                                    POST /api/numerade<br>
-                                    Content-Type: application/json<br>
-                                    <br>
-                                    {<br>
-                                    &nbsp;&nbsp;"url": "https://www.numerade.com/questions/your-question-url"<br>
-                                    }
-                                </code>
-                                <p class="endpoint-description">
-                                    Returns a JSON response with video information.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+{
+    "url": "https://www.numerade.com/questions/your-question-url"
+}</code>
+                    <p>Returns video information in JSON format</p>
+                </div>
 
-                    <div class="response-format">
-                        <h2>Response Format</h2>
-                        <div class="endpoint-box">
-                            <code class="code-block">
-                                {<br>
-                                &nbsp;&nbsp;"url": "https://cdn.numerade.com/encoded/...",<br>
-                                &nbsp;&nbsp;"title": "Question Title"<br>
-                                }
-                            </code>
-                        </div>
-                    </div>
+                <div class="endpoint">
+                    <h3>Response Format</h3>
+                    <code>{
+    "url": "https://cdn.numerade.com/encoded/...",
+    "title": "Question Title"
+}</code>
                 </div>
             </section>
         </main>
 
-        <footer class="footer">
-            <div class="container footer-content">
-                <span class="footer-text">
-                    Created by GooglyBlox
-                </span>
-                <div class="social-links">
-                    <a href="https://x.com/GooglyBlox" target="_blank" rel="noopener noreferrer" class="social-link">
-                        Twitter
-                    </a>
-                    <a href="https://github.com/GooglyBlox" target="_blank" rel="noopener noreferrer" class="social-link">
-                        GitHub
-                    </a>
+        <footer>
+            <div class="container">
+                <p>Created by GooglyBlox</p>
+                <div class="links">
+                    <a href="https://github.com/GooglyBlox" target="_blank">GitHub</a>
+                    <a href="https://x.com/GooglyBlox" target="_blank">Twitter</a>
                 </div>
             </div>
         </footer>
