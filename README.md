@@ -8,11 +8,17 @@ This project is now actively maintained with two ways to access Numerade videos:
 2. **Self-Hosted API**: The `deployment` branch contains the API that powers the Discord bot. You can deploy it to Vercel using your own Numerade premium credentials:
    - Fork this repository
    - Set up a Vercel project
+   - Create a free Redis database at [Redis](https://redis.com)
    - Add your credentials as environment variables:
      ```
      NUMERADE_EMAIL=your_premium_email
      NUMERADE_PASSWORD=your_premium_password
+     REDIS_URL=redis://default:your_redis_password@your_redis_endpoint:port
      ```
+   - To find your Redis URL:
+     1. Go to your database in Redis Cloud
+     2. Copy the "Public endpoint" under Configuration
+     3. Format it as: `redis://default:password@endpoint`
    - Deploy the `deployment` branch
 
 
@@ -62,6 +68,7 @@ Please note that this tool should be used responsibly and within the confines of
 ## Support
 - For bot support, join our [Discord server](https://discord.gg/D6D27pAs62)
 - For API deployment issues, create a GitHub issue
+- For Redis setup help, refer to [Redis Cloud Documentation](https://docs.redis.com/latest/rc/))
 
 ## Contributing
 Contributions are welcome! The `deployment` branch contains the current active codebase.
