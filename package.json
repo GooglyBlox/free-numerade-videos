@@ -1,18 +1,19 @@
 {
-    "name": "free-numerade-videos",
-    "version": "1.0.0",
-    "description": "A project to fetch video sources from Numerade.",
-    "scripts": {
-      "dev": "vercel dev"
-    },
-    "dependencies": {
-      "@sparticuz/chromium": "^131.0.1",
-      "puppeteer-core": "^24.0.0"
-    },
-    "devDependencies": {
-      "puppeteer": "^24.0.0",
-      "vercel": "^33.0.1"
-    },
-    "author": "GooglyBlox",
-    "license": "MIT"
-  }
+  "name": "free-numerade-videos",
+  "version": "1.0.0",
+  "description": "A project to fetch video sources from Numerade.",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^131.0.1",
+    "puppeteer-core": "^24.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.0.0",
+    "vercel": "^33.0.1"
+  },
+  "author": "GooglyBlox",
+  "license": "MIT"
+}
