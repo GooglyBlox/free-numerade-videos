@@ -23,83 +23,205 @@ async function isValidNumeradeUrl(url) {
   }
 }
 
-async function loginToNumerade(page) {
-  console.log("Starting login process...");
+async function attemptLogin(page) {
+  console.log("Attempting login...");
   try {
+    const initialCookies = await page.cookies();
+    console.log("Initial cookies:", initialCookies);
+
     console.log("Navigating to login page...");
-    const response = await page.goto("https://www.numerade.com/login/", {
-      waitUntil: "domcontentloaded",
-      timeout: 10000,
+    await page.goto("https://www.numerade.com/login/", {
+      waitUntil: "networkidle0",
+      timeout: 30000,
     });
 
-    if (!response.ok()) {
-      throw new Error(`Failed to load login page: ${response.status()}`);
+    console.log("Waiting for login form...");
+    const formSelector = "#signUpForm";
+    const emailSelector = 'input[data-test-id="user-email"]';
+    const passwordSelector = 'input[data-test-id="user-password"]';
+    const loginButtonSelector = 'button[data-test-id="login-button"]';
+
+    const formExists = await page
+      .waitForSelector(formSelector, {
+        visible: true,
+        timeout: 10000,
+      })
+      .catch(() => false);
+
+    if (!formExists) {
+      console.log("No login form found - may already be logged in");
+      return true;
     }
-    console.log("Login page loaded");
 
-    console.log("Waiting for form elements...");
-    await page.waitForSelector("#signUpForm", { timeout: 5000 });
-    await page.waitForSelector('[name="csrfmiddlewaretoken"]', {
-      timeout: 5000,
-    });
-    await page.waitForSelector('[data-test-id="user-email"]', {
-      timeout: 5000,
-    });
-    await page.waitForSelector('[data-test-id="user-password"]', {
-      timeout: 5000,
-    });
-    await page.waitForSelector('[data-test-id="login-button"]', {
-      timeout: 5000,
-    });
-    console.log("Form elements found");
+    await Promise.all([
+      page.waitForSelector(emailSelector, { visible: true, timeout: 5000 }),
+      page.waitForSelector(passwordSelector, { visible: true, timeout: 5000 }),
+    ]);
 
-    const csrfToken = await page.$eval(
-      '[name="csrfmiddlewaretoken"]',
-      (el) => el.value
-    );
-    console.log("CSRF token obtained");
-
-    console.log("Submitting form...");
+    console.log("Filling login credentials...");
     await page.evaluate(
-      ({ email, password, csrf }) => {
-        const form = document.getElementById("signUpForm");
-        const emailInput = form.querySelector('[data-test-id="user-email"]');
-        const passwordInput = form.querySelector(
-          '[data-test-id="user-password"]'
-        );
-        const csrfInput = form.querySelector('[name="csrfmiddlewaretoken"]');
-
-        emailInput.value = email;
-        passwordInput.value = password;
-        csrfInput.value = csrf;
-
-        form.submit();
+      (email, password, emailSel, passwordSel) => {
+        document.querySelector(emailSel).value = email;
+        document.querySelector(passwordSel).value = password;
       },
-      {
-        email: process.env.NUMERADE_EMAIL || "",
-        password: process.env.NUMERADE_PASSWORD || "",
-        csrf: csrfToken,
-      }
+      process.env.NUMERADE_EMAIL,
+      process.env.NUMERADE_PASSWORD,
+      emailSelector,
+      passwordSelector
     );
 
-    await page.waitForNavigation({
-      waitUntil: "domcontentloaded",
-      timeout: 10000,
+    await page.waitForSelector(loginButtonSelector, {
+      visible: true,
+      timeout: 5000,
     });
+
+    console.log("Submitting login form...");
+    await Promise.all([
+      page.click(loginButtonSelector),
+      page.waitForNavigation({
+        waitUntil: "networkidle0",
+        timeout: 30000,
+      }),
+    ]);
+
+    const postLoginCookies = await page.cookies();
+    console.log("Post-login cookies:", postLoginCookies);
 
     const currentUrl = page.url();
-    console.log("Current URL after login:", currentUrl);
+    console.log("Post-login URL:", currentUrl);
 
     if (currentUrl.includes("/login")) {
-      throw new Error("Still on login page after attempt");
+      const errorMessages = await page.evaluate(() => {
+        const errorElements = document.querySelectorAll(
+          ".error-message, .alert, .flash-message"
+        );
+        return Array.from(errorElements).map((el) => el.textContent.trim());
+      });
+
+      if (errorMessages.length > 0) {
+        console.log("Login errors encountered:", errorMessages);
+        return false;
+      }
+
+      console.log("Still on login page - login may have failed");
+      return false;
     }
 
-    console.log("Login successful");
+    await page.waitForTimeout(2000);
+
+    const finalCookies = await page.cookies();
+    console.log("Final cookies after login:", finalCookies);
+
+    console.log("Login appears successful");
     return true;
   } catch (error) {
-    console.error("Login error:", error);
+    console.log("Login attempt failed:", error.message);
     return false;
   }
+}
+
+async function getVideoInfo(page, url) {
+  console.log("Navigating to video page:", url);
+  const videoPageResponse = await page.goto(url, {
+    waitUntil: "domcontentloaded",
+    timeout: 5000,
+  });
+
+  if (!videoPageResponse.ok()) {
+    const errorStatus = videoPageResponse.status();
+    console.error(`Failed to load video page: ${errorStatus}`);
+    if (errorStatus === 404) {
+      throw new Error("Video not found");
+    }
+    throw new Error(`Failed to load video page: ${errorStatus}`);
+  }
+
+  console.log("Video page loaded, waiting for player...");
+
+  console.log("Waiting for play button...");
+  await page.waitForSelector(".vjs-big-play-button", { 
+    visible: true,
+    timeout: 5000 
+  });
+
+  console.log("Clicking play button...");
+  await page.click(".vjs-big-play-button");
+
+  console.log("Waiting for video source to be available...");
+  
+  const videoInfo = await page.evaluate(async () => {
+    const waitFor = (condition, timeout = 5000, interval = 50) => {
+      return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        
+        const check = () => {
+          const result = condition();
+          if (result) {
+            resolve(result);
+          } else if (Date.now() - startTime >= timeout) {
+            reject(new Error('Timeout waiting for condition'));
+          } else {
+            setTimeout(check, interval);
+          }
+        };
+        
+        check();
+      });
+    };
+
+    try {
+      const videoData = await waitFor(() => {
+        const video = document.querySelector(".video-redesign__video-container video");
+        if (!video) return null;
+        
+        console.log("Video element state:", {
+          src: video.src,
+          currentSrc: video.currentSrc,
+          readyState: video.readyState,
+          networkState: video.networkState,
+          dataSrc: video.dataset.src,
+          dataUrl: video.getAttribute('data-video-url'),
+          poster: video.poster
+        });
+        
+        const src = video.src || video.currentSrc || video.dataset.src;
+        if (!src || !(src.endsWith(".mp4") || src.endsWith(".webm"))) return null;
+        
+        const container = video.closest(".video-redesign__video-container");
+        const title = container?.getAttribute("data-video-title") || 
+                     document.title.replace(" | Numerade", "").trim();
+        
+        console.log("Found video source:", { src, title });
+        return { url: src, title };
+      }, 5000);
+
+      if (!videoData) {
+        throw new Error("Failed to find valid video source after play");
+      }
+
+      return videoData;
+    } catch (error) {
+      console.error("Error waiting for video source:", error);
+      
+      const allVideos = document.querySelectorAll("video");
+      console.log("All video elements found:", Array.from(allVideos).map(v => ({
+        src: v.src,
+        currentSrc: v.currentSrc,
+        className: v.className,
+        id: v.id,
+        dataAttrs: Object.keys(v.dataset)
+      })));
+      
+      return { error: error.message };
+    }
+  });
+
+  if (!videoInfo?.url) {
+    console.error("No valid video found:", videoInfo);
+    throw new Error(videoInfo?.error || "Video source not found");
+  }
+
+  return videoInfo;
 }
 
 module.exports = async (req, res) => {
@@ -142,7 +264,7 @@ module.exports = async (req, res) => {
       },
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      timeout: 10000,
+      timeout: 30000,
     });
     console.log("Browser launched");
 
@@ -167,80 +289,41 @@ module.exports = async (req, res) => {
       }
     });
 
-    page.setDefaultTimeout(10000);
-    page.setDefaultNavigationTimeout(10000);
+    page.setDefaultTimeout(30000);
+    page.setDefaultNavigationTimeout(30000);
 
-    const loginSuccess = await loginToNumerade(page);
-    if (!loginSuccess) {
-      throw new Error("Login failed");
-    }
-
-    console.log("Navigating to video page:", url);
-    const videoPageResponse = await page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: 10000,
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Request timeout")), 60000);
     });
 
-    if (!videoPageResponse.ok()) {
-      throw new Error(
-        `Failed to load video page: ${videoPageResponse.status()}`
-      );
-    }
-    console.log("Video page loaded");
+    await Promise.race([
+      (async () => {
+        // Try login but continue regardless of result
+        await attemptLogin(page);
 
-    console.log("Waiting for video element...");
-    await page.waitForSelector("#my-video_html5_api", { timeout: 10000 });
+        // Get video info whether login worked or not
+        const videoInfo = await getVideoInfo(page, url);
 
-    console.log("Video element found, extracting info...");
-    const videoInfo = await page.evaluate(() => {
-      const videoElements = Array.from(
-        document.querySelectorAll(".video-redesign__video-container .vjs-tech")
-      );
-      const videoData = videoElements.map((videoElement) => {
-        const container = videoElement.closest(
-          ".video-redesign__video-container"
-        );
-        const title = container
-          ? container.getAttribute("data-video-title") ||
-            document.title.replace(" | Numerade", "").trim()
-          : document.title.replace(" | Numerade", "").trim();
-
-        return {
-          url: videoElement.src,
-          title: title,
-        };
-      });
-
-      return (
-        videoData.find((video) => video.url) || {
-          error: "No valid video found",
+        if (directDownload) {
+          res.redirect(videoInfo.url);
+        } else {
+          res.json(videoInfo);
         }
-      );
-    });
-
-    await browser.close();
-    console.log("Browser closed");
-
-    const totalTime = Date.now() - startTime;
-    console.log(`Total execution time: ${totalTime}ms`);
-
-    if (videoInfo?.url) {
-      if (directDownload) {
-        res.redirect(videoInfo.url);
-      } else {
-        res.json(videoInfo);
-      }
-    } else {
-      res.status(404).json({ error: "Video source not found" });
-    }
+      })(),
+      timeoutPromise,
+    ]);
   } catch (error) {
     console.error("Error:", error);
-    if (browser) {
-      await browser.close();
-    }
-    res.status(500).json({
+    res.status(error.message === "Request timeout" ? 504 : 500).json({
       error: error.message,
       executionTime: Date.now() - startTime,
     });
+  } finally {
+    if (browser) {
+      await browser.close();
+      console.log("Browser closed");
+    }
+    const totalTime = Date.now() - startTime;
+    console.log(`Total execution time: ${totalTime}ms`);
   }
 };
