@@ -168,22 +168,6 @@ module.exports = async (req, res) => {
 
     const page = await browser.newPage();
 
-    await page.setRequestInterception(true);
-    page.on("request", (request) => {
-      if (
-        ["image", "font", "stylesheet"].includes(request.resourceType()) ||
-        request
-          .url()
-          .match(
-            /google-analytics|doubleclick|facebook|analytics|tracker|pixel/
-          )
-      ) {
-        request.abort();
-      } else {
-        request.continue();
-      }
-    });
-
     const loginSuccess = await performLogin(page);
     if (!loginSuccess) {
       throw new Error("Authentication failed");
