@@ -18,10 +18,16 @@
         <main class="container">
             <section class="intro">
                 <h2>API Documentation</h2>
-                <p>Access Numerade educational videos programmatically through our API endpoints.</p>
+                <p>Access Numerade educational videos securely through our proxy API. Videos are accessible for 30 minutes after request.</p>
             </section>
 
             <section class="endpoints">
+                <div class="endpoint">
+                    <h3>GET Endpoint</h3>
+                    <code><span class="method">GET</span> /api/getVideoSource?url=https://www.numerade.com/questions/your-question-url</code>
+                    <p>Request a video proxy URL</p>
+                </div>
+
                 <div class="endpoint">
                     <h3>POST Endpoint</h3>
                     <code><span class="method">POST</span> /api/getVideoSource
@@ -30,17 +36,52 @@ Content-Type: application/json
 {
     "url": "https://www.numerade.com/questions/your-question-url"
 }</code>
-                    <p>Returns a temporary access key for the video</p>
+                    <p>Request a video proxy URL (alternative method)</p>
                 </div>
 
                 <div class="endpoint">
                     <h3>Response Format</h3>
                     <code>{
-    "key": "temporary_access_key",
+    "key": "bc2654783f2523a22390f6e18ad2d83f6c711b24f1f0cc32921cabc91a7d69a1",
     "title": "Question Title",
-    "proxyUrl": "/api/getVideoSource?key=temporary_access_key"
+    "proxyUrl": "https://your-domain.vercel.app/api/getVideoSource?key=bc2654783f2523a22390f6e18ad2d83f6c711b24f1f0cc32921cabc91a7d69a1"
 }</code>
-                    <p>The proxyUrl is valid for 30 minutes</p>
+                    <p>The proxyUrl can be used directly in video players or for downloads</p>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Usage Example</h3>
+                    <code>&lt;video controls&gt;
+    &lt;source src="https://your-domain.vercel.app/api/getVideoSource?key=your_received_key" type="video/mp4"&gt;
+&lt;/video&gt;</code>
+                    <p>Example of using the proxy URL in an HTML5 video player</p>
+                </div>
+
+                <div class="endpoint">
+                    <h3>JavaScript Example</h3>
+                    <code>async function getVideo(numeradeUrl) {
+    const response = await fetch('/api/getVideoSource', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url: numeradeUrl })
+    });
+    
+    const data = await response.json();
+    return data.proxyUrl; // Valid for 30 minutes
+}</code>
+                    <p>Example of requesting a video URL programmatically</p>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Important Notes</h3>
+                    <ul>
+                        <li>Proxy URLs expire after 30 minutes</li>
+                        <li>Only Numerade question URLs are supported</li>
+                        <li>Direct video file access is not available for security</li>
+                        <li>Rate limiting may apply</li>
+                    </ul>
                 </div>
             </section>
         </main>
