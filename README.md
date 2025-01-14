@@ -1,6 +1,20 @@
 # [Numerade](https://www.numerade.com) Video Viewer
 
-Thanks to an anonymous donor providing premium account access, this project has been revived! While the project was previously archived due to Numerade implementing CloudFront signed URLs that required proper authentication via Key-Pair-Id and signatures, we now have a working solution. Stay tuned for updates in the coming days.
+## Active Development Update
+This project is now actively maintained with two ways to access Numerade videos:
+
+1. **Discord Bot (Recommended)**: Join our [Discord server](https://discord.gg/D6D27pAs62) to use the bot with our existing premium credentials! Simply use the `/numerade` command with any Numerade video URL.
+
+2. **Self-Hosted API**: The `deployment` branch contains the API that powers the Discord bot. You can deploy it to Vercel using your own Numerade premium credentials:
+   - Fork this repository
+   - Set up a Vercel project
+   - Add your credentials as environment variables:
+     ```
+     NUMERADE_EMAIL=your_premium_email
+     NUMERADE_PASSWORD=your_premium_password
+     ```
+   - Deploy the `deployment` branch
+
 
 ## Original Project Description
 <details>
@@ -29,3 +43,28 @@ This application is a proof of concept and is intended for educational purposes 
 
 Please note that this tool should be used responsibly and within the confines of legal and ethical boundaries. This project is not affiliated with Numerade.
 </details>
+
+
+## Current Status
+- ✅ Discord Bot: Fully functional, free to use on our [Discord server](https://discord.gg/D6D27pAs62)
+- ✅ API: Available for self-hosting (requires premium credentials)
+- ⚠️ Userscript: Currently unmaintained (see Discord bot alternative)
+- ⚠️ Web App: Currently unmaintained (see Discord bot alternative)
+
+## Discord Bot Features
+- Easy to use `/numerade` slash command
+- Downloads videos directly to Discord
+- Supports both question types:
+  - `https://www.numerade.com/questions/...`
+  - `https://www.numerade.com/ask/question/...`
+- No setup required, just join and use!
+
+## Support
+- For bot support, join our [Discord server](https://discord.gg/D6D27pAs62)
+- For API deployment issues, create a GitHub issue
+
+## Contributing
+Contributions are welcome! The `deployment` branch contains the current active codebase.
+
+## Disclaimer
+This application is a proof of concept and is intended for educational purposes only. It demonstrates the technical possibility of automating web content access and should not be used to infringe on the rights of Numerade or any other service. Please use responsibly and within legal boundaries. This project is not affiliated with Numerade.
