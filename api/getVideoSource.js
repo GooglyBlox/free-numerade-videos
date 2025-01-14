@@ -1,10 +1,28 @@
 const chromium = require("@sparticuz/chromium");
+const https = require("https");
+const crypto = require("crypto");
 let puppeteer;
 
 if (process.env.VERCEL) {
   puppeteer = require("puppeteer-core");
 } else {
   puppeteer = require("puppeteer");
+}
+
+const VIDEO_CACHE = new Map();
+const VIDEO_KEY_EXPIRY = 30 * 60 * 1000;
+
+function generateVideoKey() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function cleanExpiredKeys() {
+  const now = Date.now();
+  for (const [key, data] of VIDEO_CACHE.entries()) {
+    if (now - data.timestamp > VIDEO_KEY_EXPIRY) {
+      VIDEO_CACHE.delete(key);
+    }
+  }
 }
 
 async function validateNumeradeUrl(url) {
@@ -75,32 +93,37 @@ async function extractVideoInfo(page) {
   try {
     await Promise.race([
       page.waitForSelector("#my-video_html5_api", { timeout: 30000 }),
-      page.waitForSelector(".video-redesign__video-container video", { timeout: 30000 })
+      page.waitForSelector(".video-redesign__video-container video", {
+        timeout: 30000,
+      }),
     ]);
 
-    await page.waitForFunction(() => {
-      const selectors = [
-        "#my-video_html5_api",
-        ".video-redesign__video-container video",
-        ".video-js video",
-        "video[data-video-url]"
-      ];
-      
-      for (const selector of selectors) {
-        const element = document.querySelector(selector);
-        if (element?.src) {
-          return true;
+    await page.waitForFunction(
+      () => {
+        const selectors = [
+          "#my-video_html5_api",
+          ".video-redesign__video-container video",
+          ".video-js video",
+          "video[data-video-url]",
+        ];
+
+        for (const selector of selectors) {
+          const element = document.querySelector(selector);
+          if (element?.src) {
+            return true;
+          }
         }
-      }
-      return false;
-    }, { timeout: 30000, polling: 100 });
+        return false;
+      },
+      { timeout: 30000, polling: 100 }
+    );
 
     return await page.evaluate(() => {
       const selectors = [
         "#my-video_html5_api",
         ".video-redesign__video-container video",
         ".video-js video",
-        "video[data-video-url]"
+        "video[data-video-url]",
       ];
 
       let videoElement = null;
@@ -147,14 +170,46 @@ async function extractVideoInfo(page) {
   }
 }
 
+async function proxyVideo(videoUrl, res) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(videoUrl, (videoResponse) => {
+      res.writeHead(200, {
+        "Content-Type": "video/mp4",
+        "Content-Length": videoResponse.headers["content-length"],
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      });
+
+      videoResponse.pipe(res);
+      videoResponse.on("end", resolve);
+      videoResponse.on("error", reject);
+    });
+
+    request.on("error", reject);
+  });
+}
+
 module.exports = async (req, res) => {
-  console.log(
-    `Processing ${req.method} request for URL:`,
-    req.method === "POST" ? req.body?.url : req.query?.url
-  );
+  if (req.query.key) {
+    cleanExpiredKeys();
+    const videoData = VIDEO_CACHE.get(req.query.key);
+
+    if (!videoData) {
+      return res.status(404).json({ error: "Video not found or expired" });
+    }
+
+    try {
+      await proxyVideo(videoData.url, res);
+    } catch (error) {
+      console.error("Error streaming video:", error);
+      res.status(500).json({ error: "Error streaming video" });
+    }
+    return;
+  }
 
   const url = req.method === "POST" ? req.body?.url : req.query?.url;
-  const isDirectDownload = req.method === "GET";
 
   if (!url) {
     return res.status(400).json({ error: "URL parameter is required" });
@@ -216,11 +271,17 @@ module.exports = async (req, res) => {
 
     await browser.close();
 
-    if (isDirectDownload) {
-      res.redirect(videoInfo.url);
-    } else {
-      res.json(videoInfo);
-    }
+    const videoKey = generateVideoKey();
+    VIDEO_CACHE.set(videoKey, {
+      url: videoInfo.url,
+      timestamp: Date.now(),
+    });
+
+    res.json({
+      key: videoKey,
+      title: videoInfo.title,
+      proxyUrl: `/api/getVideoSource?key=${videoKey}`,
+    });
   } catch (error) {
     console.error("Error processing request:", error);
     if (browser) {

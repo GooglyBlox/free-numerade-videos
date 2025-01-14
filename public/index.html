@@ -23,12 +23,6 @@
 
             <section class="endpoints">
                 <div class="endpoint">
-                    <h3>GET Endpoint</h3>
-                    <code><span class="method">GET</span> /api/getVideoSource?url=https://www.numerade.com/questions/your-question-url</code>
-                    <p>Redirects directly to the video file</p>
-                </div>
-
-                <div class="endpoint">
                     <h3>POST Endpoint</h3>
                     <code><span class="method">POST</span> /api/getVideoSource
 Content-Type: application/json
@@ -36,15 +30,17 @@ Content-Type: application/json
 {
     "url": "https://www.numerade.com/questions/your-question-url"
 }</code>
-                    <p>Returns video information in JSON format</p>
+                    <p>Returns a temporary access key for the video</p>
                 </div>
 
                 <div class="endpoint">
                     <h3>Response Format</h3>
                     <code>{
-    "url": "https://cdn.numerade.com/encoded/...",
-    "title": "Question Title"
+    "key": "temporary_access_key",
+    "title": "Question Title",
+    "proxyUrl": "/api/getVideoSource?key=temporary_access_key"
 }</code>
+                    <p>The proxyUrl is valid for 30 minutes</p>
                 </div>
             </section>
         </main>
