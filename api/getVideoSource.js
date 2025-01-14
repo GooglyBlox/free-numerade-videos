@@ -1,6 +1,7 @@
 const chromium = require("@sparticuz/chromium");
 const https = require("https");
 const crypto = require("crypto");
+const { Redis } = require("@upstash/redis");
 let puppeteer;
 
 if (process.env.VERCEL) {
@@ -9,20 +10,15 @@ if (process.env.VERCEL) {
   puppeteer = require("puppeteer");
 }
 
-const VIDEO_CACHE = new Map();
-const VIDEO_KEY_EXPIRY = 30 * 60 * 1000;
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_URL,
+  token: process.env.UPSTASH_REDIS_TOKEN,
+});
+
+const VIDEO_KEY_EXPIRY = 30 * 60;
 
 function generateVideoKey() {
   return crypto.randomBytes(32).toString("hex");
-}
-
-function cleanExpiredKeys() {
-  const now = Date.now();
-  for (const [key, data] of VIDEO_CACHE.entries()) {
-    if (now - data.timestamp > VIDEO_KEY_EXPIRY) {
-      VIDEO_CACHE.delete(key);
-    }
-  }
 }
 
 async function validateNumeradeUrl(url) {
@@ -193,14 +189,12 @@ async function proxyVideo(videoUrl, res) {
 
 module.exports = async (req, res) => {
   if (req.query.key) {
-    cleanExpiredKeys();
-    const videoData = VIDEO_CACHE.get(req.query.key);
-
-    if (!videoData) {
-      return res.status(404).json({ error: "Video not found or expired" });
-    }
-
     try {
+      const videoData = await redis.get(req.query.key);
+      if (!videoData) {
+        return res.status(404).json({ error: "Video not found or expired" });
+      }
+
       await proxyVideo(videoData.url, res);
     } catch (error) {
       console.error("Error streaming video:", error);
@@ -272,15 +266,23 @@ module.exports = async (req, res) => {
     await browser.close();
 
     const videoKey = generateVideoKey();
-    VIDEO_CACHE.set(videoKey, {
-      url: videoInfo.url,
-      timestamp: Date.now(),
-    });
+    await redis.setex(
+      videoKey,
+      VIDEO_KEY_EXPIRY,
+      JSON.stringify({
+        url: videoInfo.url,
+        title: videoInfo.title,
+      })
+    );
+
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
 
     res.json({
       key: videoKey,
       title: videoInfo.title,
-      proxyUrl: `/api/getVideoSource?key=${videoKey}`,
+      proxyUrl: `${baseUrl}/api/getVideoSource?key=${videoKey}`,
     });
   } catch (error) {
     console.error("Error processing request:", error);
