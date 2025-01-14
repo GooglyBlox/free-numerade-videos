@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Numerade Video Viewer [ARCHIVED]
+// @name         Numerade Video Viewer
 // @namespace    https://github.com/GooglyBlox/free-numerade-videos
-// @version      1.8
-// @description  [ARCHIVED] This userscript is no longer functional due to Numerade's security updates.
+// @version      1.9
+// @description  [MOVED] The userscript has moved to Discord. Join us there for continued access!
 // @author       GooglyBlox
 // @match        https://www.numerade.com/questions/*
 // @match        https://www.numerade.com/ask/question/*
@@ -44,7 +44,7 @@
         .numerade-archive-title {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #e74c3c;
+            color: #5865F2;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
@@ -57,16 +57,16 @@
             margin-bottom: 1.5rem;
         }
  
-        .numerade-archive-warning {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
+        .numerade-archive-info {
+            background: #e3f2fd;
+            border-left: 4px solid #5865F2;
             padding: 1rem;
             margin: 1rem 0;
-            color: #856404;
+            color: #1a237e;
         }
  
         .numerade-archive-button {
-            background: #e74c3c;
+            background: #5865F2;
             color: white;
             border: none;
             padding: 0.75rem 1.5rem;
@@ -78,7 +78,17 @@
         }
  
         .numerade-archive-button:hover {
-            background: #c0392b;
+            background: #4752C4;
+        }
+ 
+        .discord-link {
+            color: #5865F2;
+            text-decoration: none;
+            font-weight: bold;
+        }
+ 
+        .discord-link:hover {
+            text-decoration: underline;
         }
     `;
  
@@ -95,22 +105,26 @@
  
         popup.innerHTML = `
             <div class="numerade-archive-title">
-                <span>⚠️ Numerade Video Viewer - Project Archived</span>
+                <span>🎉 We've Moved to Discord!</span>
             </div>
             <div class="numerade-archive-content">
-                <p>This userscript is no longer functional due to Numerade implementing CloudFront signed URLs for their video content.</p>
+                <p>The Numerade Video Viewer project is still alive and active, but we've moved to a new home!</p>
  
-                <div class="numerade-archive-warning">
-                    <strong>Note:</strong> This popup will continue to appear on all Numerade pages until you uninstall the userscript.
+                <div class="numerade-archive-info">
+                    <strong>Good news:</strong> Join our Discord server to continue accessing Numerade videos for free!
+                    <p style="margin-top: 0.5rem;">
+                        <a href="https://discord.gg/D6D27pAs62" target="_blank" class="discord-link">➡️ Click here to join our Discord server</a>
+                    </p>
                 </div>
  
-                <p><strong>Please take the following actions:</strong></p>
+                <p><strong>What to do now:</strong></p>
                 <ol>
-                    <li>Uninstall this userscript as it will no longer work</li>
-                    <li>Visit <a href="https://github.com/GooglyBlox/free-numerade-videos" target="_blank">our GitHub repository</a> for more information</li>
+                    <li>Uninstall this userscript as it's no longer needed</li>
+                    <li>Join our Discord server using the link above</li>
+                    <li>Use our Discord bot to access videos!</li>
                 </ol>
             </div>
-            <button class="numerade-archive-button">I understand - Close this popup</button>
+            <button class="numerade-archive-button">Got it, thanks!</button>
         `;
  
         const closeButton = popup.querySelector('.numerade-archive-button');
