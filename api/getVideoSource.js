@@ -75,17 +75,32 @@ async function extractVideoInfo(page) {
   try {
     await Promise.race([
       page.waitForSelector("#my-video_html5_api", { timeout: 30000 }),
-      page.waitForSelector(".video-redesign__video-container video", {
-        timeout: 30000,
-      }),
+      page.waitForSelector(".video-redesign__video-container video", { timeout: 30000 })
     ]);
+
+    await page.waitForFunction(() => {
+      const selectors = [
+        "#my-video_html5_api",
+        ".video-redesign__video-container video",
+        ".video-js video",
+        "video[data-video-url]"
+      ];
+      
+      for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element?.src) {
+          return true;
+        }
+      }
+      return false;
+    }, { timeout: 30000, polling: 100 });
 
     return await page.evaluate(() => {
       const selectors = [
         "#my-video_html5_api",
         ".video-redesign__video-container video",
         ".video-js video",
-        "video[data-video-url]",
+        "video[data-video-url]"
       ];
 
       let videoElement = null;
@@ -167,6 +182,22 @@ module.exports = async (req, res) => {
     });
 
     const page = await browser.newPage();
+
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      if (
+        ["image", "font", "stylesheet"].includes(request.resourceType()) ||
+        request
+          .url()
+          .match(
+            /google-analytics|doubleclick|facebook|analytics|tracker|pixel/
+          )
+      ) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
 
     const loginSuccess = await performLogin(page);
     if (!loginSuccess) {
