@@ -15,7 +15,7 @@ const TOKEN_EXPIRY = 3600;
 
 function generateSecureToken(videoUrl) {
   const expiryTime = Math.floor(Date.now() / 1000) + TOKEN_EXPIRY;
-  const data = `${encodeURIComponent(videoUrl)}|${expiryTime}`;
+  const data = `${videoUrl}|${expiryTime}`;
   const hmac = crypto.createHmac("sha256", PROXY_SECRET);
   hmac.update(data);
   const signature = hmac.digest("hex");
@@ -35,15 +35,21 @@ function verifySecureToken(token) {
     const { url, exp, sig } = decoded;
 
     if (Date.now() / 1000 > exp) {
+      console.log("Token expired");
       return null;
     }
 
-    const data = `${encodeURIComponent(url)}|${exp}`;
+    const data = `${url}|${exp}`;
     const hmac = crypto.createHmac("sha256", PROXY_SECRET);
     hmac.update(data);
     const expectedSignature = hmac.digest("hex");
 
-    return sig === expectedSignature ? url : null;
+    if (sig !== expectedSignature) {
+      console.log("Signature mismatch");
+      return null;
+    }
+
+    return url;
   } catch (error) {
     console.error("Token verification error:", error);
     return null;
@@ -197,30 +203,36 @@ async function extractVideoInfo(page) {
 
 async function proxyVideo(videoUrl, res) {
   return new Promise((resolve, reject) => {
-    https
-      .get(
-        videoUrl,
-        {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            Referer: "https://www.numerade.com/",
-          },
-        },
-        (stream) => {
-          res.setHeader("Content-Type", "video/mp4");
-          res.setHeader(
-            "Cache-Control",
-            "no-store, no-cache, must-revalidate, proxy-revalidate"
-          );
-          res.setHeader("Pragma", "no-cache");
-          res.setHeader("Expires", "0");
+    const requestOptions = {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        Referer: "https://www.numerade.com/",
+        Accept: "*/*",
+        "Accept-Encoding": "identity",
+        Connection: "keep-alive",
+      },
+    };
 
-          stream.pipe(res);
-          stream.on("end", resolve);
-          stream.on("error", reject);
+    https
+      .get(videoUrl, requestOptions, (stream) => {
+        if (stream.statusCode === 403 || stream.statusCode === 401) {
+          reject(new Error("Access denied to video URL"));
+          return;
         }
-      )
+
+        res.setHeader("Content-Type", "video/mp4");
+        res.setHeader(
+          "Cache-Control",
+          "no-store, no-cache, must-revalidate, proxy-revalidate"
+        );
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+
+        stream.pipe(res);
+        stream.on("end", resolve);
+        stream.on("error", reject);
+      })
       .on("error", reject);
   });
 }
@@ -246,13 +258,21 @@ module.exports = async (req, res) => {
   try {
     if (req.query?.token) {
       console.log("Processing token request");
+      console.log("Token:", req.query.token);
+
       const originalUrl = verifySecureToken(req.query.token);
       if (!originalUrl) {
         console.error("Token verification failed");
         return res.status(401).json({ error: "Invalid or expired token" });
       }
-      console.log("Token verified, proxying video");
-      await proxyVideo(originalUrl, res);
+
+      console.log("Verified URL:", originalUrl);
+      try {
+        await proxyVideo(originalUrl, res);
+      } catch (error) {
+        console.error("Proxy error:", error);
+        return res.status(500).json({ error: "Failed to proxy video" });
+      }
       return;
     }
 
