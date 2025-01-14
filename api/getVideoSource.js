@@ -73,24 +73,57 @@ async function performLogin(page) {
 
 async function extractVideoInfo(page) {
   try {
-    await page.waitForSelector("#my-video_html5_api", { timeout: 30000 });
+    await Promise.race([
+      page.waitForSelector("#my-video_html5_api", { timeout: 30000 }),
+      page.waitForSelector(".video-redesign__video-container video", {
+        timeout: 30000,
+      }),
+    ]);
 
     return await page.evaluate(() => {
-      const videoElement = document.querySelector("#my-video_html5_api");
+      const selectors = [
+        "#my-video_html5_api",
+        ".video-redesign__video-container video",
+        ".video-js video",
+        "video[data-video-url]",
+      ];
+
+      let videoElement = null;
+      for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element?.src) {
+          videoElement = element;
+          break;
+        }
+      }
+
       if (!videoElement?.src) return null;
 
-      const container = videoElement.closest(
-        ".video-redesign__video-container"
-      );
-      const title = container
-        ? container.getAttribute("data-video-title") ||
-          document.title.replace(" | Numerade", "").trim()
-        : document.title.replace(" | Numerade", "").trim();
+      const container =
+        videoElement.closest(".video-redesign__video-container") ||
+        videoElement.closest(".video-js");
+
+      let title = document.title.replace(" | Numerade", "").trim();
+
+      if (container) {
+        title =
+          container.getAttribute("data-video-title") ||
+          container
+            .getAttribute("aria-label")
+            ?.replace("Video Player", "")
+            .trim() ||
+          title;
+      }
+
+      const videoId =
+        videoElement.getAttribute("data-video-url") ||
+        videoElement.getAttribute("data-answer-id") ||
+        videoElement.src.split("/").pop()?.split(".")[0];
 
       return {
         url: videoElement.src,
         title: title,
-        videoId: videoElement.getAttribute("data-video-url"),
+        videoId: videoId,
       };
     });
   } catch (error) {
