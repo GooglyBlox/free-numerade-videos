@@ -13,12 +13,9 @@ This project is now actively maintained with two ways to access Numerade videos:
      ```
      NUMERADE_EMAIL=your_premium_email
      NUMERADE_PASSWORD=your_premium_password
-     REDIS_URL=redis://default:your_redis_password@your_redis_endpoint:port
+     REDIS_HOST=redis-your_public_endpoint
+     REDIS_PASSWORD=your_default_user_password
      ```
-   - To find your Redis URL:
-     1. Go to your database in Redis Cloud
-     2. Copy the "Public endpoint" under Configuration
-     3. Format it as: `redis://default:password@endpoint`
    - Deploy the `deployment` branch
 
 
