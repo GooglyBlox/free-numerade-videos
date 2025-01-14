@@ -1,7 +1,7 @@
 const chromium = require("@sparticuz/chromium");
 const https = require("https");
 const crypto = require("crypto");
-const { Redis } = require("@upstash/redis");
+const Redis = require("ioredis");
 let puppeteer;
 
 if (process.env.VERCEL) {
@@ -10,10 +10,7 @@ if (process.env.VERCEL) {
   puppeteer = require("puppeteer");
 }
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_URL,
-  token: process.env.UPSTASH_REDIS_TOKEN,
-});
+const redis = new Redis(process.env.REDIS_URL);
 
 const VIDEO_KEY_EXPIRY = 30 * 60;
 
@@ -195,7 +192,8 @@ module.exports = async (req, res) => {
         return res.status(404).json({ error: "Video not found or expired" });
       }
 
-      await proxyVideo(videoData.url, res);
+      const data = JSON.parse(videoData);
+      await proxyVideo(data.url, res);
     } catch (error) {
       console.error("Error streaming video:", error);
       res.status(500).json({ error: "Error streaming video" });
