@@ -7,59 +7,36 @@ if (process.env.VERCEL) {
   puppeteer = require("puppeteer");
 }
 
-async function isValidNumeradeUrl(url) {
-  console.log("Validating URL:", url);
+async function validateNumeradeUrl(url) {
   try {
     const parsedUrl = new URL(url);
-    const isValid =
+    return (
       parsedUrl.hostname === "www.numerade.com" &&
       (url.startsWith("https://www.numerade.com/ask/question/") ||
-        url.startsWith("https://www.numerade.com/questions/"));
-    console.log("URL validation result:", isValid);
-    return isValid;
-  } catch (error) {
-    console.error("URL validation error:", error);
+        url.startsWith("https://www.numerade.com/questions/"))
+    );
+  } catch {
     return false;
   }
 }
 
-async function loginToNumerade(page) {
-  console.log("Starting login process...");
+async function performLogin(page) {
   try {
-    console.log("Navigating to login page...");
-    const response = await page.goto("https://www.numerade.com/login/", {
+    await page.goto("https://www.numerade.com/login/", {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
 
-    if (!response.ok()) {
-      throw new Error(`Failed to load login page: ${response.status()}`);
-    }
-    console.log("Login page loaded");
-
-    console.log("Waiting for form elements...");
-    await page.waitForSelector("#signUpForm", { timeout: 5000 });
+    await page.waitForSelector("#signUpForm", { timeout: 10000 });
     await page.waitForSelector('[name="csrfmiddlewaretoken"]', {
-      timeout: 5000,
+      timeout: 10000,
     });
-    await page.waitForSelector('[data-test-id="user-email"]', {
-      timeout: 5000,
-    });
-    await page.waitForSelector('[data-test-id="user-password"]', {
-      timeout: 5000,
-    });
-    await page.waitForSelector('[data-test-id="login-button"]', {
-      timeout: 5000,
-    });
-    console.log("Form elements found");
 
     const csrfToken = await page.$eval(
       '[name="csrfmiddlewaretoken"]',
       (el) => el.value
     );
-    console.log("CSRF token obtained");
 
-    console.log("Submitting form...");
     await page.evaluate(
       ({ email, password, csrf }) => {
         const form = document.getElementById("signUpForm");
@@ -76,8 +53,8 @@ async function loginToNumerade(page) {
         form.submit();
       },
       {
-        email: process.env.NUMERADE_EMAIL || "",
-        password: process.env.NUMERADE_PASSWORD || "",
+        email: process.env.NUMERADE_EMAIL,
+        password: process.env.NUMERADE_PASSWORD,
         csrf: csrfToken,
       }
     );
@@ -87,45 +64,60 @@ async function loginToNumerade(page) {
       timeout: 30000,
     });
 
-    const currentUrl = page.url();
-    console.log("Current URL after login:", currentUrl);
-
-    if (currentUrl.includes("/login")) {
-      throw new Error("Still on login page after attempt");
-    }
-
-    console.log("Login successful");
-    return true;
+    return !page.url().includes("/login");
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login failed:", error);
     return false;
   }
 }
 
+async function extractVideoInfo(page) {
+  try {
+    await page.waitForSelector("#my-video_html5_api", { timeout: 30000 });
+
+    return await page.evaluate(() => {
+      const videoElement = document.querySelector("#my-video_html5_api");
+      if (!videoElement?.src) return null;
+
+      const container = videoElement.closest(
+        ".video-redesign__video-container"
+      );
+      const title = container
+        ? container.getAttribute("data-video-title") ||
+          document.title.replace(" | Numerade", "").trim()
+        : document.title.replace(" | Numerade", "").trim();
+
+      return {
+        url: videoElement.src,
+        title: title,
+        videoId: videoElement.getAttribute("data-video-url"),
+      };
+    });
+  } catch (error) {
+    console.error("Video extraction failed:", error);
+    return null;
+  }
+}
+
 module.exports = async (req, res) => {
-  const startTime = Date.now();
-  console.log("Request received:", {
-    method: req.method,
-    query: req.query,
-    body: req.method === "POST" ? req.body : undefined,
-  });
+  console.log(
+    `Processing ${req.method} request for URL:`,
+    req.method === "POST" ? req.body?.url : req.query?.url
+  );
 
-  const url = req.method === "POST" ? req.body.url : req.query.url;
-  const directDownload = req.method === "GET";
-
-  console.log("Processing request for URL:", url);
+  const url = req.method === "POST" ? req.body?.url : req.query?.url;
+  const isDirectDownload = req.method === "GET";
 
   if (!url) {
     return res.status(400).json({ error: "URL parameter is required" });
   }
 
-  if (!(await isValidNumeradeUrl(url))) {
+  if (!(await validateNumeradeUrl(url))) {
     return res.status(400).json({ error: "Invalid Numerade URL" });
   }
 
   let browser;
   try {
-    console.log("Launching browser...");
     browser = await puppeteer.launch({
       args: [
         ...chromium.args,
@@ -136,30 +128,22 @@ module.exports = async (req, res) => {
         "--disable-gpu",
         "--disable-web-security",
       ],
-      defaultViewport: {
-        width: 1280,
-        height: 720,
-      },
+      defaultViewport: { width: 1280, height: 720 },
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      timeout: 30000,
     });
-    console.log("Browser launched");
 
     const page = await browser.newPage();
-    console.log("Page created");
 
     await page.setRequestInterception(true);
     page.on("request", (request) => {
       if (
-        request.resourceType() === "image" ||
-        request.resourceType() === "font" ||
-        request.url().includes("google-analytics") ||
-        request.url().includes("doubleclick") ||
-        request.url().includes("facebook") ||
-        request.url().includes("analytics") ||
-        request.url().includes("tracker") ||
-        request.url().includes("pixel")
+        ["image", "font", "stylesheet"].includes(request.resourceType()) ||
+        request
+          .url()
+          .match(
+            /google-analytics|doubleclick|facebook|analytics|tracker|pixel/
+          )
       ) {
         request.abort();
       } else {
@@ -167,80 +151,33 @@ module.exports = async (req, res) => {
       }
     });
 
-    page.setDefaultTimeout(30000);
-    page.setDefaultNavigationTimeout(30000);
-
-    const loginSuccess = await loginToNumerade(page);
+    const loginSuccess = await performLogin(page);
     if (!loginSuccess) {
-      throw new Error("Login failed");
+      throw new Error("Authentication failed");
     }
 
-    console.log("Navigating to video page:", url);
-    const videoPageResponse = await page.goto(url, {
+    await page.goto(url, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
 
-    if (!videoPageResponse.ok()) {
-      throw new Error(
-        `Failed to load video page: ${videoPageResponse.status()}`
-      );
+    const videoInfo = await extractVideoInfo(page);
+    if (!videoInfo?.url) {
+      throw new Error("Video source not found");
     }
-    console.log("Video page loaded");
-
-    console.log("Waiting for video element...");
-    await page.waitForSelector("#my-video_html5_api", { timeout: 30000 });
-
-    console.log("Video element found, extracting info...");
-    const videoInfo = await page.evaluate(() => {
-      const videoElements = Array.from(
-        document.querySelectorAll(".video-redesign__video-container .vjs-tech")
-      );
-      const videoData = videoElements.map((videoElement) => {
-        const container = videoElement.closest(
-          ".video-redesign__video-container"
-        );
-        const title = container
-          ? container.getAttribute("data-video-title") ||
-            document.title.replace(" | Numerade", "").trim()
-          : document.title.replace(" | Numerade", "").trim();
-
-        return {
-          url: videoElement.src,
-          title: title,
-        };
-      });
-
-      return (
-        videoData.find((video) => video.url) || {
-          error: "No valid video found",
-        }
-      );
-    });
 
     await browser.close();
-    console.log("Browser closed");
 
-    const totalTime = Date.now() - startTime;
-    console.log(`Total execution time: ${totalTime}ms`);
-
-    if (videoInfo?.url) {
-      if (directDownload) {
-        res.redirect(videoInfo.url);
-      } else {
-        res.json(videoInfo);
-      }
+    if (isDirectDownload) {
+      res.redirect(videoInfo.url);
     } else {
-      res.status(404).json({ error: "Video source not found" });
+      res.json(videoInfo);
     }
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error processing request:", error);
     if (browser) {
       await browser.close();
     }
-    res.status(500).json({
-      error: error.message,
-      executionTime: Date.now() - startTime,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
