@@ -15,35 +15,37 @@ const TOKEN_EXPIRY = 3600;
 
 function generateSecureToken(videoUrl) {
   const expiryTime = Math.floor(Date.now() / 1000) + TOKEN_EXPIRY;
-  const data = `${videoUrl}|${expiryTime}`;
+  const data = `${encodeURIComponent(videoUrl)}|${expiryTime}`;
   const hmac = crypto.createHmac("sha256", PROXY_SECRET);
   hmac.update(data);
   const signature = hmac.digest("hex");
 
-  return Buffer.from(
-    JSON.stringify({
-      url: videoUrl,
-      exp: expiryTime,
-      sig: signature,
-    })
-  ).toString("base64");
+  const tokenData = {
+    url: videoUrl,
+    exp: expiryTime,
+    sig: signature,
+  };
+
+  return Buffer.from(JSON.stringify(tokenData)).toString("base64url");
 }
 
 function verifySecureToken(token) {
   try {
-    const decoded = JSON.parse(Buffer.from(token, "base64").toString());
+    const decoded = JSON.parse(Buffer.from(token, "base64url").toString());
     const { url, exp, sig } = decoded;
 
     if (Date.now() / 1000 > exp) {
       return null;
     }
 
+    const data = `${encodeURIComponent(url)}|${exp}`;
     const hmac = crypto.createHmac("sha256", PROXY_SECRET);
-    hmac.update(`${url}|${exp}`);
+    hmac.update(data);
     const expectedSignature = hmac.digest("hex");
 
     return sig === expectedSignature ? url : null;
-  } catch {
+  } catch (error) {
+    console.error("Token verification error:", error);
     return null;
   }
 }
@@ -248,10 +250,13 @@ module.exports = async (req, res) => {
   );
 
   if (req.query?.token) {
+    console.log("Received token request");
     const originalUrl = verifySecureToken(req.query.token);
     if (!originalUrl) {
+      console.error("Token verification failed");
       return res.status(401).json({ error: "Invalid or expired token" });
     }
+    console.log("Token verified, proxying video from:", originalUrl);
     try {
       await proxyVideo(originalUrl, res);
     } catch (error) {
@@ -331,9 +336,11 @@ module.exports = async (req, res) => {
     }
 
     const proxyToken = generateSecureToken(videoInfo.url);
-    const proxyUrl = `${req.headers["x-forwarded-proto"] || "http"}://${
-      req.headers.host
-    }/api/getVideoSource?token=${proxyToken}`;
+    const proxyUrl = new URL(
+      "/api/getVideoSource",
+      `${req.headers["x-forwarded-proto"] || "http"}://${req.headers.host}`
+    );
+    proxyUrl.searchParams.set("token", proxyToken);
 
     await cleanupBrowser(browser, page);
 
