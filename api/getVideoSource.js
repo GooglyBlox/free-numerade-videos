@@ -225,21 +225,13 @@ async function proxyVideo(videoUrl, res) {
   });
 }
 
-async function cleanupBrowser(browser, page) {
-  if (page) {
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-      const cookies = document.cookie.split(";");
-      cookies.forEach((cookie) => {
-        document.cookie = cookie
-          .replace(/^ +/, "")
-          .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
-      });
-    });
-  }
-  if (browser) {
-    await browser.close();
+async function cleanupBrowser(browser) {
+  try {
+    if (browser) {
+      await browser.close();
+    }
+  } catch (error) {
+    console.error("Browser cleanup error:", error);
   }
 }
 
@@ -249,44 +241,32 @@ module.exports = async (req, res) => {
     req.method === "POST" ? req.body?.url : req.query?.url
   );
 
-  if (req.query?.token) {
-    console.log("Received token request");
-    const originalUrl = verifySecureToken(req.query.token);
-    if (!originalUrl) {
-      console.error("Token verification failed");
-      return res.status(401).json({ error: "Invalid or expired token" });
-    }
-    console.log("Token verified, proxying video from:", originalUrl);
-    try {
-      await proxyVideo(originalUrl, res);
-    } catch (error) {
-      console.error("Proxy error:", error);
-      res.status(500).json({ error: "Failed to proxy video" });
-    }
-    return;
-  }
+  let browser = null;
 
-  const url = req.method === "POST" ? req.body?.url : req.query?.url;
-  const isDirectDownload = req.method === "GET";
-
-  if (!url) {
-    return res.status(400).json({ error: "URL parameter is required" });
-  }
-
-  if (!(await validateNumeradeUrl(url))) {
-    return res.status(400).json({ error: "Invalid Numerade URL" });
-  }
-
-  res.setHeader(
-    "Cache-Control",
-    "no-store, no-cache, must-revalidate, proxy-revalidate"
-  );
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-
-  let browser;
-  let page;
   try {
+    if (req.query?.token) {
+      console.log("Processing token request");
+      const originalUrl = verifySecureToken(req.query.token);
+      if (!originalUrl) {
+        console.error("Token verification failed");
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      console.log("Token verified, proxying video");
+      await proxyVideo(originalUrl, res);
+      return;
+    }
+
+    const url = req.method === "POST" ? req.body?.url : req.query?.url;
+    const isDirectDownload = req.method === "GET";
+
+    if (!url) {
+      return res.status(400).json({ error: "URL parameter is required" });
+    }
+
+    if (!(await validateNumeradeUrl(url))) {
+      return res.status(400).json({ error: "Invalid Numerade URL" });
+    }
+
     browser = await puppeteer.launch({
       args: [
         ...chromium.args,
@@ -302,7 +282,7 @@ module.exports = async (req, res) => {
       headless: chromium.headless,
     });
 
-    page = await browser.newPage();
+    const page = await browser.newPage();
     await page.setRequestInterception(true);
 
     page.on("request", (request) => {
@@ -336,18 +316,17 @@ module.exports = async (req, res) => {
     }
 
     const proxyToken = generateSecureToken(videoInfo.url);
-    const proxyUrl = new URL(
-      "/api/getVideoSource",
-      `${req.headers["x-forwarded-proto"] || "http"}://${req.headers.host}`
-    );
-    proxyUrl.searchParams.set("token", proxyToken);
-
-    await cleanupBrowser(browser, page);
+    const baseUrl = `${req.headers["x-forwarded-proto"] || "http"}://${
+      req.headers.host
+    }`;
+    const proxyUrl = `${baseUrl}/api/getVideoSource?token=${proxyToken}`;
 
     if (isDirectDownload) {
-      res.redirect(307, proxyUrl);
+      await cleanupBrowser(browser);
+      return res.redirect(proxyUrl);
     } else {
-      res.json({
+      await cleanupBrowser(browser);
+      return res.json({
         url: proxyUrl,
         title: videoInfo.title,
         expires_in: TOKEN_EXPIRY,
@@ -355,7 +334,7 @@ module.exports = async (req, res) => {
     }
   } catch (error) {
     console.error("Error processing request:", error);
-    await cleanupBrowser(browser, page);
-    res.status(500).json({ error: error.message });
+    await cleanupBrowser(browser);
+    return res.status(500).json({ error: error.message });
   }
 };
