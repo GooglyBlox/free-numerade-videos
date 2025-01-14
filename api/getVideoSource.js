@@ -29,7 +29,7 @@ async function loginToNumerade(page) {
     console.log("Navigating to login page...");
     const response = await page.goto("https://www.numerade.com/login/", {
       waitUntil: "domcontentloaded",
-      timeout: 10000,
+      timeout: 30000,
     });
 
     if (!response.ok()) {
@@ -84,7 +84,7 @@ async function loginToNumerade(page) {
 
     await page.waitForNavigation({
       waitUntil: "domcontentloaded",
-      timeout: 10000,
+      timeout: 30000,
     });
 
     const currentUrl = page.url();
@@ -142,7 +142,7 @@ module.exports = async (req, res) => {
       },
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      timeout: 10000,
+      timeout: 30000,
     });
     console.log("Browser launched");
 
@@ -167,8 +167,8 @@ module.exports = async (req, res) => {
       }
     });
 
-    page.setDefaultTimeout(10000);
-    page.setDefaultNavigationTimeout(10000);
+    page.setDefaultTimeout(30000);
+    page.setDefaultNavigationTimeout(30000);
 
     const loginSuccess = await loginToNumerade(page);
     if (!loginSuccess) {
@@ -178,7 +178,7 @@ module.exports = async (req, res) => {
     console.log("Navigating to video page:", url);
     const videoPageResponse = await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: 10000,
+      timeout: 30000,
     });
 
     if (!videoPageResponse.ok()) {
@@ -189,7 +189,7 @@ module.exports = async (req, res) => {
     console.log("Video page loaded");
 
     console.log("Waiting for video element...");
-    await page.waitForSelector("#my-video_html5_api", { timeout: 10000 });
+    await page.waitForSelector("#my-video_html5_api", { timeout: 30000 });
 
     console.log("Video element found, extracting info...");
     const videoInfo = await page.evaluate(() => {
