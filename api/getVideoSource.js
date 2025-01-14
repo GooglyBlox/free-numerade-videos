@@ -193,37 +193,29 @@ module.exports = async (req, res) => {
 
     console.log("Video element found, extracting info...");
     const videoInfo = await page.evaluate(() => {
-      const videoSelectors = [
-        ".video-redesign__video-container .vjs-tech",
-        "#my-video_html5_api",
-        "video.vjs-tech",
-      ];
+      const videoElements = Array.from(
+        document.querySelectorAll(".video-redesign__video-container .vjs-tech")
+      );
+      const videoData = videoElements.map((videoElement) => {
+        const container = videoElement.closest(
+          ".video-redesign__video-container"
+        );
+        const title = container
+          ? container.getAttribute("data-video-title") ||
+            document.title.replace(" | Numerade", "").trim()
+          : document.title.replace(" | Numerade", "").trim();
 
-      for (const selector of videoSelectors) {
-        const videoElements = Array.from(document.querySelectorAll(selector));
-        if (videoElements.length > 0) {
-          const videoData = videoElements.map((videoElement) => {
-            let title = document.title.replace(" | Numerade", "").trim();
+        return {
+          url: videoElement.src,
+          title: title,
+        };
+      });
 
-            const container = videoElement.closest(
-              ".video-redesign__video-container"
-            );
-            if (container && container.getAttribute("data-video-title")) {
-              title = container.getAttribute("data-video-title");
-            }
-
-            return {
-              url: videoElement.src,
-              title: title,
-            };
-          });
-
-          const validVideo = videoData.find((video) => video.url);
-          if (validVideo) return validVideo;
+      return (
+        videoData.find((video) => video.url) || {
+          error: "No valid video found",
         }
-      }
-
-      return { error: "No valid video found" };
+      );
     });
 
     await browser.close();
