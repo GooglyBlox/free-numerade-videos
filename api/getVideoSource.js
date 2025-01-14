@@ -1,10 +1,51 @@
 const chromium = require("@sparticuz/chromium");
+const crypto = require("crypto");
+const https = require("https");
 let puppeteer;
 
 if (process.env.VERCEL) {
   puppeteer = require("puppeteer-core");
 } else {
   puppeteer = require("puppeteer");
+}
+
+const PROXY_SECRET =
+  process.env.PROXY_SECRET || crypto.randomBytes(32).toString("hex");
+const TOKEN_EXPIRY = 3600;
+
+function generateSecureToken(videoUrl) {
+  const expiryTime = Math.floor(Date.now() / 1000) + TOKEN_EXPIRY;
+  const data = `${videoUrl}|${expiryTime}`;
+  const hmac = crypto.createHmac("sha256", PROXY_SECRET);
+  hmac.update(data);
+  const signature = hmac.digest("hex");
+
+  return Buffer.from(
+    JSON.stringify({
+      url: videoUrl,
+      exp: expiryTime,
+      sig: signature,
+    })
+  ).toString("base64");
+}
+
+function verifySecureToken(token) {
+  try {
+    const decoded = JSON.parse(Buffer.from(token, "base64").toString());
+    const { url, exp, sig } = decoded;
+
+    if (Date.now() / 1000 > exp) {
+      return null;
+    }
+
+    const hmac = crypto.createHmac("sha256", PROXY_SECRET);
+    hmac.update(`${url}|${exp}`);
+    const expectedSignature = hmac.digest("hex");
+
+    return sig === expectedSignature ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 async function validateNumeradeUrl(url) {
@@ -75,32 +116,37 @@ async function extractVideoInfo(page) {
   try {
     await Promise.race([
       page.waitForSelector("#my-video_html5_api", { timeout: 30000 }),
-      page.waitForSelector(".video-redesign__video-container video", { timeout: 30000 })
+      page.waitForSelector(".video-redesign__video-container video", {
+        timeout: 30000,
+      }),
     ]);
 
-    await page.waitForFunction(() => {
-      const selectors = [
-        "#my-video_html5_api",
-        ".video-redesign__video-container video",
-        ".video-js video",
-        "video[data-video-url]"
-      ];
-      
-      for (const selector of selectors) {
-        const element = document.querySelector(selector);
-        if (element?.src) {
-          return true;
+    await page.waitForFunction(
+      () => {
+        const selectors = [
+          "#my-video_html5_api",
+          ".video-redesign__video-container video",
+          ".video-js video",
+          "video[data-video-url]",
+        ];
+
+        for (const selector of selectors) {
+          const element = document.querySelector(selector);
+          if (element?.src) {
+            return true;
+          }
         }
-      }
-      return false;
-    }, { timeout: 30000, polling: 100 });
+        return false;
+      },
+      { timeout: 30000, polling: 100 }
+    );
 
     return await page.evaluate(() => {
       const selectors = [
         "#my-video_html5_api",
         ".video-redesign__video-container video",
         ".video-js video",
-        "video[data-video-url]"
+        "video[data-video-url]",
       ];
 
       let videoElement = null;
@@ -147,11 +193,73 @@ async function extractVideoInfo(page) {
   }
 }
 
+async function proxyVideo(videoUrl, res) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(
+        videoUrl,
+        {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            Referer: "https://www.numerade.com/",
+          },
+        },
+        (stream) => {
+          res.setHeader("Content-Type", "video/mp4");
+          res.setHeader(
+            "Cache-Control",
+            "no-store, no-cache, must-revalidate, proxy-revalidate"
+          );
+          res.setHeader("Pragma", "no-cache");
+          res.setHeader("Expires", "0");
+
+          stream.pipe(res);
+          stream.on("end", resolve);
+          stream.on("error", reject);
+        }
+      )
+      .on("error", reject);
+  });
+}
+
+async function cleanupBrowser(browser, page) {
+  if (page) {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      const cookies = document.cookie.split(";");
+      cookies.forEach((cookie) => {
+        document.cookie = cookie
+          .replace(/^ +/, "")
+          .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
+      });
+    });
+  }
+  if (browser) {
+    await browser.close();
+  }
+}
+
 module.exports = async (req, res) => {
   console.log(
     `Processing ${req.method} request for URL:`,
     req.method === "POST" ? req.body?.url : req.query?.url
   );
+
+  if (req.query?.token) {
+    const originalUrl = verifySecureToken(req.query.token);
+    if (!originalUrl) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+    try {
+      await proxyVideo(originalUrl, res);
+    } catch (error) {
+      console.error("Proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy video" });
+    }
+    return;
+  }
 
   const url = req.method === "POST" ? req.body?.url : req.query?.url;
   const isDirectDownload = req.method === "GET";
@@ -164,7 +272,15 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Invalid Numerade URL" });
   }
 
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   let browser;
+  let page;
   try {
     browser = await puppeteer.launch({
       args: [
@@ -181,9 +297,9 @@ module.exports = async (req, res) => {
       headless: chromium.headless,
     });
 
-    const page = await browser.newPage();
-
+    page = await browser.newPage();
     await page.setRequestInterception(true);
+
     page.on("request", (request) => {
       if (
         ["image", "font", "stylesheet"].includes(request.resourceType()) ||
@@ -214,18 +330,25 @@ module.exports = async (req, res) => {
       throw new Error("Video source not found");
     }
 
-    await browser.close();
+    const proxyToken = generateSecureToken(videoInfo.url);
+    const proxyUrl = `${req.headers["x-forwarded-proto"] || "http"}://${
+      req.headers.host
+    }/api/getVideoSource?token=${proxyToken}`;
+
+    await cleanupBrowser(browser, page);
 
     if (isDirectDownload) {
-      res.redirect(videoInfo.url);
+      res.redirect(307, proxyUrl);
     } else {
-      res.json(videoInfo);
+      res.json({
+        url: proxyUrl,
+        title: videoInfo.title,
+        expires_in: TOKEN_EXPIRY,
+      });
     }
   } catch (error) {
     console.error("Error processing request:", error);
-    if (browser) {
-      await browser.close();
-    }
+    await cleanupBrowser(browser, page);
     res.status(500).json({ error: error.message });
   }
 };
