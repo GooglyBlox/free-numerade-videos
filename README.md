@@ -3,7 +3,7 @@
 ## Active Development Update
 This project is now actively maintained with two ways to access Numerade videos:
 
-1. **Discord Bot (Recommended)**: Join our [Discord server](https://discord.gg/D6D27pAs62) to use the bot with our existing premium credentials! Simply use the `/numerade` command with any Numerade video URL.
+1. **Discord Bot (Recommended)**: Join our [Discord server](https://discord.gg/D6D27pAs62) to use the bot! Simply use the `/numerade` command with any Numerade video URL.
 
 2. **Self-Hosted API**: The `deployment` branch contains the API that powers the Discord bot. You can deploy it to Vercel using your own Numerade premium credentials:
    - Fork this repository
