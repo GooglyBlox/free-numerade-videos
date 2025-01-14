@@ -12,7 +12,7 @@ if (process.env.VERCEL) {
 
 const redis = new Redis({
   port: 14018,
-  host: 'redis-14018.c100.us-east-1-4.ec2.redns.redis-cloud.com',
+  host: process.env.REDIS_HOST,
   password: process.env.REDIS_PASSWORD,
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
