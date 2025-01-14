@@ -10,7 +10,16 @@ if (process.env.VERCEL) {
   puppeteer = require("puppeteer");
 }
 
-const redis = new Redis(process.env.REDIS_URL);
+const redis = new Redis({
+  port: 14018,
+  host: 'redis-14018.c100.us-east-1-4.ec2.redns.redis-cloud.com',
+  password: process.env.REDIS_PASSWORD,
+  retryStrategy: (times) => {
+    const delay = Math.min(times * 50, 2000);
+    return delay;
+  },
+  maxRetriesPerRequest: 3
+});
 
 const VIDEO_KEY_EXPIRY = 30 * 60;
 
