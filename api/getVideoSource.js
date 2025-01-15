@@ -21,7 +21,7 @@ const redis = new Redis({
   maxRetriesPerRequest: 3
 });
 
-const VIDEO_KEY_EXPIRY = 30 * 60;
+const VIDEO_KEY_EXPIRY = 5 * 60;
 
 function generateVideoKey() {
   return crypto.randomBytes(32).toString("hex");

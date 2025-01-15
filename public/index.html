@@ -18,7 +18,7 @@
         <main class="container">
             <section class="intro">
                 <h2>API Documentation</h2>
-                <p>Access Numerade educational videos securely through our proxy API. Videos are accessible for 30 minutes after request.</p>
+                <p>Access Numerade educational videos securely through our proxy API. Videos are accessible for 5 minutes after request.</p>
             </section>
 
             <section class="endpoints">
@@ -69,7 +69,7 @@ Content-Type: application/json
     });
     
     const data = await response.json();
-    return data.proxyUrl; // Valid for 30 minutes
+    return data.proxyUrl; // Valid for 5 minutes
 }</code>
                     <p>Example of requesting a video URL programmatically</p>
                 </div>
@@ -77,7 +77,7 @@ Content-Type: application/json
                 <div class="endpoint">
                     <h3>Important Notes</h3>
                     <ul>
-                        <li>Proxy URLs expire after 30 minutes</li>
+                        <li>Proxy URLs expire after 5 minutes</li>
                         <li>Only Numerade question URLs are supported</li>
                         <li>Direct video file access is not available for security</li>
                         <li>Rate limiting may apply</li>
