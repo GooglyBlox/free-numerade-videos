@@ -160,10 +160,21 @@ async function extractVideoInfo(page) {
         videoElement.getAttribute("data-answer-id") ||
         videoElement.src.split("/").pop()?.split(".")[0];
 
-      const isAIGenerated =
-        !!document.querySelector('[id^="ai-feedback"]') ||
-        document.documentElement.innerHTML.includes("aiVideoId") ||
-        document.documentElement.innerHTML.includes("aiVideoGPTVersion");
+      const scripts = document.querySelectorAll("script");
+      let isAIGenerated = false;
+
+      for (const script of scripts) {
+        const content = script.textContent;
+        if (content && content.includes("aiVideoGPTVersion")) {
+          const match = content.match(
+            /aiVideoGPTVersion\s*=\s*['"]([^'"]*)['"]/
+          );
+          if (match && match[1] === "") {
+            isAIGenerated = true;
+            break;
+          }
+        }
+      }
 
       return {
         url: videoElement.src,
