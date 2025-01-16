@@ -18,7 +18,7 @@ const redis = new Redis({
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
-  maxRetriesPerRequest: 3
+  maxRetriesPerRequest: 3,
 });
 
 const VIDEO_KEY_EXPIRY = 5 * 60;
@@ -160,10 +160,16 @@ async function extractVideoInfo(page) {
         videoElement.getAttribute("data-answer-id") ||
         videoElement.src.split("/").pop()?.split(".")[0];
 
+      const isAIGenerated =
+        !!document.querySelector('[id^="ai-feedback"]') ||
+        document.documentElement.innerHTML.includes("aiVideoId") ||
+        document.documentElement.innerHTML.includes("aiVideoGPTVersion");
+
       return {
         url: videoElement.src,
         title: title,
         videoId: videoId,
+        isAIGenerated: isAIGenerated,
       };
     });
   } catch (error) {
@@ -290,6 +296,7 @@ module.exports = async (req, res) => {
       key: videoKey,
       title: videoInfo.title,
       proxyUrl: `${baseUrl}/api/getVideoSource?key=${videoKey}`,
+      isAIGenerated: videoInfo.isAIGenerated,
     });
   } catch (error) {
     console.error("Error processing request:", error);
