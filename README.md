@@ -65,7 +65,7 @@ Please note that this tool should be used responsibly and within the confines of
 ## Support
 - For bot support, join our [Discord server](https://discord.gg/D6D27pAs62)
 - For API deployment issues, create a GitHub issue
-- For Redis setup help, refer to [Redis Cloud Documentation](https://docs.redis.com/latest/rc/))
+- For Redis setup help, refer to [Redis Cloud Documentation](https://docs.redis.com/latest/rc/)
 
 ## Contributing
 Contributions are welcome! The `deployment` branch contains the current active codebase.
