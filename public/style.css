@@ -88,29 +88,16 @@ main {
   border-radius: 50%;
 }
 
-code {
-  display: block;
-  background: #0d0d0d;
-  padding: 20px;
+.endpoint pre {
+  margin: 16px 0;
   border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.endpoint code {
   font-family: "Consolas", "Monaco", monospace;
   font-size: 14px;
   line-height: 1.6;
-  color: #e4e4e4;
-  margin: 16px 0;
-  white-space: pre;
-  overflow-x: auto;
-  border: 1px solid #333;
-  position: relative;
-}
-
-code .method {
-  color: #e54646;
-  font-weight: 600;
-}
-
-code .url {
-  color: #a5d4ff;
 }
 
 .endpoint p {
@@ -202,8 +189,7 @@ footer p {
     padding: 20px;
   }
 
-  code {
-    padding: 16px;
+  .endpoint code {
     font-size: 13px;
   }
 }
@@ -221,8 +207,7 @@ footer p {
     padding: 16px;
   }
 
-  code {
-    padding: 12px;
+  .endpoint code {
     font-size: 12px;
   }
 
@@ -235,71 +220,4 @@ footer p {
   .links {
     justify-content: center;
   }
-}
-
-.keyword {
-  color: #ff79c6;
-}
-
-.string {
-  color: #50fa7b;
-}
-
-.number {
-  color: #bd93f9;
-}
-
-.boolean {
-  color: #bd93f9;
-}
-
-.null {
-  color: #bd93f9;
-}
-
-.punctuation {
-  color: #f8f8f2;
-}
-
-.property {
-  color: #8be9fd;
-}
-
-.comment {
-  color: #6272a4;
-  font-style: italic;
-}
-
-.function {
-  color: #50fa7b;
-}
-
-.variable {
-  color: #f8f8f2;
-}
-
-.operator {
-  color: #ff79c6;
-}
-
-.async-keyword {
-  color: #ff79c6;
-}
-
-.try-catch {
-  color: #ff79c6;
-}
-
-code .http-verb {
-  color: #ff79c6;
-  font-weight: 600;
-}
-
-code .url-path {
-  color: #50fa7b;
-}
-
-code .content-type {
-  color: #8be9fd;
-  font-style: italic;
 }
