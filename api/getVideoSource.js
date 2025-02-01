@@ -319,8 +319,8 @@ module.exports = async (req, res) => {
       })
     );
 
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL
+      ? `https://${process.env.NEXT_PUBLIC_API_URL}`
       : "http://localhost:3000";
 
     res.json({
