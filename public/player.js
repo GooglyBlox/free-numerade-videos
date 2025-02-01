@@ -35,36 +35,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = window.location.origin;
   const proxyUrl = `${baseUrl}/api/getVideoSource?key=${videoKey}`;
 
-  videoSource.src = proxyUrl;
-
   async function fetchVideoInfo() {
     try {
-      const response = await fetch(proxyUrl, { method: "HEAD" });
+      const infoResponse = await fetch(proxyUrl, {
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
-      if (!response.ok) {
-        if (response.status === 404) {
+      if (!infoResponse.ok) {
+        if (infoResponse.status === 404) {
           videoTitle.textContent = "Video has expired";
           clearInterval(expiryTimer);
           countdownElement.textContent = "0:00";
           return;
         }
-        throw new Error("Failed to load video");
-      }
-
-      const infoResponse = await fetch(
-        `${baseUrl}/api/getVideoSource?key=${videoKey}`
-      );
-      if (!infoResponse.ok) {
         throw new Error("Failed to load video info");
       }
 
       const data = await infoResponse.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
       videoTitle.textContent = data.title || "Untitled Video";
-      const expiryTime = data.expiryTime;
+
+      videoSource.src = proxyUrl;
 
       downloadBtn.addEventListener("click", () => {
         const a = document.createElement("a");
@@ -75,8 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.removeChild(a);
       });
 
-      if (expiryTime) {
-        startCountdown(expiryTime);
+      if (data.expiryTime) {
+        startCountdown(data.expiryTime);
       }
     } catch (error) {
       console.error("Error:", error);

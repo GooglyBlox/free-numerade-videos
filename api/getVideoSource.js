@@ -237,6 +237,14 @@ module.exports = async (req, res) => {
       }
 
       const data = JSON.parse(videoData);
+
+      if (req.headers.accept === "application/json") {
+        return res.json({
+          title: data.title,
+          expiryTime: data.expiryTime,
+        });
+      }
+
       await proxyVideo(data.url, res, data.title);
     } catch (error) {
       console.error("Error streaming video:", error);
