@@ -35,38 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = window.location.origin;
   const proxyUrl = `${baseUrl}/api/getVideoSource?key=${videoKey}`;
 
-  const mediaSource = new MediaSource();
-  const video = document.getElementById("player");
-  video.src = URL.createObjectURL(mediaSource);
-
-  mediaSource.addEventListener("sourceopen", async () => {
-    try {
-      const response = await fetch(proxyUrl);
-      if (!response.ok) {
-        throw new Error("Failed to load video");
-      }
-
-      const sourceBuffer = mediaSource.addSourceBuffer(
-        'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
-      );
-      const reader = response.body.getReader();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // Wait for the previous append to finish
-        if (!sourceBuffer.updating) {
-          sourceBuffer.appendBuffer(value);
-        }
-      }
-
-      mediaSource.endOfStream();
-    } catch (error) {
-      console.error("Error loading video:", error);
-      videoTitle.textContent = "Error loading video";
-    }
-  });
+  videoSource.src = proxyUrl;
 
   async function fetchVideoInfo() {
     try {
