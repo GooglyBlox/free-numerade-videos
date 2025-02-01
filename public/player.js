@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resetOnEnd: false,
   });
 
+  const video = document.getElementById("player");
   const videoSource = document.getElementById("video-source");
   const videoTitle = document.getElementById("video-title");
   const downloadBtn = document.getElementById("download-btn");
@@ -57,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
       videoTitle.textContent = data.title || "Untitled Video";
 
       videoSource.src = proxyUrl;
+      video.load();
 
       downloadBtn.addEventListener("click", () => {
         const a = document.createElement("a");
