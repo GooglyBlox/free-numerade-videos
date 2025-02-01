@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Numerade Video Player</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="player.css" />
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="video-container">
+        <div id="player-wrapper">
+          <video id="player" playsinline controls>
+            <source id="video-source" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-info">
+          <h1 id="video-title">Loading...</h1>
+          <div class="meta-info">
+            <span class="expiry"
+              >Expires in: <span id="countdown">5:00</span></span
+            >
+            <button id="download-btn" class="download-button">
+              Download Video
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.min.js"></script>
+    <script src="player.js"></script>
+  </body>
+</html>

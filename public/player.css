@@ -1,0 +1,115 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0f0f0f;
+  color: #fff;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.video-container {
+  width: 100%;
+  max-width: 1200px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#player-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.plyr {
+  height: 100%;
+}
+
+.video-info {
+  padding: 24px;
+}
+
+.video-info h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.meta-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.expiry {
+  color: #a1a1a1;
+  font-size: 0.9rem;
+}
+
+#countdown {
+  font-weight: 500;
+  color: #fff;
+}
+
+.download-button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.download-button:hover {
+  background: #1d4ed8;
+}
+
+.download-button:active {
+  background: #1e40af;
+}
+
+@media (max-width: 640px) {
+  .wrapper {
+    padding: 0;
+  }
+
+  .video-container {
+    border-radius: 0;
+  }
+
+  .video-info {
+    padding: 16px;
+  }
+
+  .video-info h1 {
+    font-size: 1.25rem;
+  }
+
+  .meta-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .download-button {
+    width: 100%;
+  }
+}

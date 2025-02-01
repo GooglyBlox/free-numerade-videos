@@ -189,12 +189,15 @@ async function extractVideoInfo(page) {
   }
 }
 
-async function proxyVideo(videoUrl, res) {
+async function proxyVideo(videoUrl, res, title) {
   return new Promise((resolve, reject) => {
     const request = https.get(videoUrl, (videoResponse) => {
       res.writeHead(200, {
         "Content-Type": "video/mp4",
         "Content-Length": videoResponse.headers["content-length"],
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(
+          title || "numerade-video.mp4"
+        )}"`,
         "Cache-Control":
           "no-store, no-cache, must-revalidate, proxy-revalidate",
         Pragma: "no-cache",
@@ -219,7 +222,7 @@ module.exports = async (req, res) => {
       }
 
       const data = JSON.parse(videoData);
-      await proxyVideo(data.url, res);
+      await proxyVideo(data.url, res, data.title);
     } catch (error) {
       console.error("Error streaming video:", error);
       res.status(500).json({ error: "Error streaming video" });
@@ -307,6 +310,7 @@ module.exports = async (req, res) => {
       key: videoKey,
       title: videoInfo.title,
       proxyUrl: `${baseUrl}/api/getVideoSource?key=${videoKey}`,
+      watchUrl: `${baseUrl}/watch?watch=${videoKey}`,
       isAIGenerated: videoInfo.isAIGenerated,
     });
   } catch (error) {

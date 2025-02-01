@@ -1,23 +1,27 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "api/getVideoSource.js",
-        "use": "@vercel/node"
-      },
-      {
-        "src": "public/**",
-        "use": "@vercel/static"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/api/getVideoSource",
-        "dest": "/api/getVideoSource.js"
-      },
-      {
-        "src": "/(.*)",
-        "dest": "/public/$1"
-      }
-    ]
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/getVideoSource.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/getVideoSource",
+      "dest": "/api/getVideoSource.js"
+    },
+    {
+      "src": "/watch",
+      "dest": "/public/watch.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
 }
