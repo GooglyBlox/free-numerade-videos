@@ -86,6 +86,14 @@ body {
   background: #1e40af;
 }
 
+.expiry-notice {
+  margin-top: 12px;
+  color: #a1a1a1;
+  font-size: 0.9rem;
+  padding-top: 12px;
+  border-top: 1px solid #333;
+}
+
 @media (max-width: 640px) {
   .wrapper {
     padding: 0;
