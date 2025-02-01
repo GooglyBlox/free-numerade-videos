@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ],
     settings: ["quality", "speed"],
     speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
+    resetOnEnd: false,
   });
 
   const videoSource = document.getElementById("video-source");
@@ -34,11 +35,42 @@ document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = window.location.origin;
   const proxyUrl = `${baseUrl}/api/getVideoSource?key=${videoKey}`;
 
-  videoSource.src = proxyUrl;
+  const mediaSource = new MediaSource();
+  const video = document.getElementById("player");
+  video.src = URL.createObjectURL(mediaSource);
+
+  mediaSource.addEventListener("sourceopen", async () => {
+    try {
+      const response = await fetch(proxyUrl);
+      if (!response.ok) {
+        throw new Error("Failed to load video");
+      }
+
+      const sourceBuffer = mediaSource.addSourceBuffer(
+        'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
+      );
+      const reader = response.body.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Wait for the previous append to finish
+        if (!sourceBuffer.updating) {
+          sourceBuffer.appendBuffer(value);
+        }
+      }
+
+      mediaSource.endOfStream();
+    } catch (error) {
+      console.error("Error loading video:", error);
+      videoTitle.textContent = "Error loading video";
+    }
+  });
 
   async function fetchVideoInfo() {
     try {
-      const response = await fetch(proxyUrl);
+      const response = await fetch(proxyUrl, { method: "HEAD" });
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -50,50 +82,56 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Failed to load video");
       }
 
-      const contentDisposition = response.headers.get("content-disposition");
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(
-          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-        );
-        if (filenameMatch && filenameMatch[1]) {
-          const filename = filenameMatch[1].replace(/['"]/g, "");
-          videoTitle.textContent = decodeURIComponent(filename);
-        }
+      const infoResponse = await fetch(
+        `${baseUrl}/api/getVideoSource?key=${videoKey}`
+      );
+      if (!infoResponse.ok) {
+        throw new Error("Failed to load video info");
       }
+
+      const data = await infoResponse.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      videoTitle.textContent = data.title || "Untitled Video";
+      const expiryTime = data.expiryTime;
 
       downloadBtn.addEventListener("click", () => {
         const a = document.createElement("a");
         a.href = proxyUrl;
-        a.download = videoTitle.textContent || "numerade-video.mp4";
+        a.download = "";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       });
 
-      startCountdown(5 * 60);
+      if (expiryTime) {
+        startCountdown(expiryTime);
+      }
     } catch (error) {
       console.error("Error:", error);
       videoTitle.textContent = "Error loading video";
     }
   }
 
-  function startCountdown(duration) {
-    let timeLeft = duration;
-
+  function startCountdown(expiryTime) {
     function updateCountdown() {
+      const now = Math.floor(Date.now() / 1000);
+      const timeLeft = expiryTime - now;
+
+      if (timeLeft <= 0) {
+        clearInterval(expiryTimer);
+        countdownElement.textContent = "0:00";
+        videoTitle.textContent = "Video has expired";
+        return;
+      }
+
       const minutes = Math.floor(timeLeft / 60);
       const seconds = timeLeft % 60;
       countdownElement.textContent = `${minutes}:${seconds
         .toString()
         .padStart(2, "0")}`;
-
-      if (timeLeft === 0) {
-        clearInterval(expiryTimer);
-        videoTitle.textContent = "Video has expired";
-        return;
-      }
-
-      timeLeft--;
     }
 
     updateCountdown();

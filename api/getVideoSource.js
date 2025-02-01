@@ -189,6 +189,21 @@ async function extractVideoInfo(page) {
   }
 }
 
+function normalizeFilename(title) {
+  let normalized = title
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .replace(/\s+/g, "_")
+    .toLowerCase();
+
+  normalized = normalized.slice(0, 100);
+
+  if (!normalized.endsWith(".mp4")) {
+    normalized += ".mp4";
+  }
+
+  return normalized;
+}
+
 async function proxyVideo(videoUrl, res, title) {
   return new Promise((resolve, reject) => {
     const request = https.get(videoUrl, (videoResponse) => {
@@ -196,7 +211,7 @@ async function proxyVideo(videoUrl, res, title) {
         "Content-Type": "video/mp4",
         "Content-Length": videoResponse.headers["content-length"],
         "Content-Disposition": `attachment; filename="${encodeURIComponent(
-          title || "numerade-video.mp4"
+          normalizeFilename(title || "numerade-video.mp4")
         )}"`,
         "Cache-Control":
           "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -293,12 +308,14 @@ module.exports = async (req, res) => {
     await browser.close();
 
     const videoKey = generateVideoKey();
+    const expiryTime = Math.floor(Date.now() / 1000) + VIDEO_KEY_EXPIRY;
     await redis.setex(
       videoKey,
       VIDEO_KEY_EXPIRY,
       JSON.stringify({
         url: videoInfo.url,
         title: videoInfo.title,
+        expiryTime: expiryTime,
       })
     );
 
