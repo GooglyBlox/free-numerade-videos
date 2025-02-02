@@ -44,12 +44,12 @@ async function performLogin(page) {
   try {
     await page.goto("https://www.numerade.com/login/", {
       waitUntil: "domcontentloaded",
-      timeout: 30000,
+      timeout: 60000,
     });
 
-    await page.waitForSelector("#signUpForm", { timeout: 10000 });
+    await page.waitForSelector("#signUpForm", { timeout: 30000 });
     await page.waitForSelector('[name="csrfmiddlewaretoken"]', {
-      timeout: 10000,
+      timeout: 30000,
     });
 
     const csrfToken = await page.$eval(
@@ -81,7 +81,7 @@ async function performLogin(page) {
 
     await page.waitForNavigation({
       waitUntil: "domcontentloaded",
-      timeout: 30000,
+      timeout: 60000,
     });
 
     return !page.url().includes("/login");
@@ -94,9 +94,9 @@ async function performLogin(page) {
 async function extractVideoInfo(page) {
   try {
     await Promise.race([
-      page.waitForSelector("#my-video_html5_api", { timeout: 30000 }),
+      page.waitForSelector("#my-video_html5_api", { timeout: 60000 }),
       page.waitForSelector(".video-redesign__video-container video", {
-        timeout: 30000,
+        timeout: 60000,
       }),
     ]);
 
@@ -117,7 +117,7 @@ async function extractVideoInfo(page) {
         }
         return false;
       },
-      { timeout: 30000, polling: 100 }
+      { timeout: 60000, polling: 100 }
     );
 
     return await page.evaluate(() => {
@@ -305,7 +305,7 @@ module.exports = async (req, res) => {
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: 30000,
+      timeout: 60000,
     });
 
     const videoInfo = await extractVideoInfo(page);
