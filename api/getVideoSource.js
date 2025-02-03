@@ -189,6 +189,49 @@ async function extractVideoInfo(page) {
   }
 }
 
+async function extractInstantAnswer(page) {
+  try {
+    await page
+      .waitForSelector(".postorder-steps-container", { timeout: 30000 })
+      .catch(() => null);
+
+    return await page.evaluate(() => {
+      const container = document.querySelector(".postorder-steps-container");
+      if (!container) return null;
+
+      const steps = Array.from(
+        container.querySelectorAll(".postorder-steps-item")
+      )
+        .map((item) => {
+          const stepNumber =
+            item
+              .querySelector(".postorder-steps-item-step p")
+              ?.textContent?.trim() || "";
+          const stepContent =
+            item
+              .querySelector(".postorder-steps-item-text")
+              ?.innerHTML?.trim() || "";
+
+          return {
+            step: stepNumber,
+            content: stepContent,
+          };
+        })
+        .filter((step) => step.content);
+
+      if (!steps.length) return null;
+
+      return {
+        steps,
+        rawHtml: container.innerHTML,
+      };
+    });
+  } catch (error) {
+    console.error("Answer extraction failed:", error);
+    return null;
+  }
+}
+
 function normalizeFilename(title) {
   let normalized = title
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
@@ -242,6 +285,7 @@ module.exports = async (req, res) => {
         return res.json({
           title: data.title,
           expiryTime: data.expiryTime,
+          instantAnswer: data.instantAnswer,
         });
       }
 
@@ -308,12 +352,19 @@ module.exports = async (req, res) => {
       timeout: 60000,
     });
 
-    const videoInfo = await extractVideoInfo(page);
-    if (!videoInfo?.url) {
-      throw new Error("Video source not found");
-    }
+    const [videoInfo, instantAnswer] = await Promise.all([
+      extractVideoInfo(page),
+      extractInstantAnswer(page),
+    ]);
 
     await browser.close();
+
+    if (!videoInfo?.url) {
+      return res.json({
+        error: "Video source not found",
+        instantAnswer: instantAnswer,
+      });
+    }
 
     const videoKey = generateVideoKey();
     const expiryTime = Math.floor(Date.now() / 1000) + VIDEO_KEY_EXPIRY;
@@ -324,6 +375,7 @@ module.exports = async (req, res) => {
         url: videoInfo.url,
         title: videoInfo.title,
         expiryTime: expiryTime,
+        instantAnswer: instantAnswer,
       })
     );
 
@@ -337,6 +389,7 @@ module.exports = async (req, res) => {
       proxyUrl: `${baseUrl}/api/getVideoSource?key=${videoKey}`,
       watchUrl: `${baseUrl}/watch?watch=${videoKey}`,
       isAIGenerated: videoInfo.isAIGenerated,
+      instantAnswer: instantAnswer,
     });
   } catch (error) {
     console.error("Error processing request:", error);
