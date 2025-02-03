@@ -1,67 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Numerade Video API</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div class="wrapper">
-        <header>
-            <div class="container">
-                <h1>Numerade Video API</h1>
-            </div>
-        </header>
+      <header>
+        <div class="container">
+          <h1>Numerade Video API</h1>
+        </div>
+      </header>
 
-        <main class="container">
-            <section class="intro">
-                <h2>API Documentation</h2>
-                <p>Access Numerade educational videos securely through our proxy API. Videos are accessible for 5 minutes after request. Supports both regular and AI-generated content.</p>
-            </section>
+      <main class="container">
+        <section class="intro">
+          <h2>Overview</h2>
+          <p>
+            The Numerade Video API provides secure access to educational videos
+            from Numerade. It includes a built-in video player with download
+            capabilities and supports both regular and AI-generated content.
+          </p>
+        </section>
 
-            <section class="endpoints">
-                <div class="endpoint">
-                    <h3>GET Endpoint</h3>
-                    <pre><code class="language-http">GET /api/getVideoSource?url=https://www.numerade.com/questions/your-question-url</code></pre>
-                    <p>Request a video proxy URL</p>
-                </div>
+        <section class="endpoints">
+          <div class="endpoint">
+            <h3>Basic Usage</h3>
+            <p>
+              To request video access, send either a GET or POST request to the
+              API endpoint.
+            </p>
 
-                <div class="endpoint">
-                    <h3>POST Endpoint</h3>
-                    <pre><code class="language-http">POST /api/getVideoSource
+            <h4>GET Request</h4>
+            <pre><code class="language-http">GET /api/getVideoSource?url=https://www.numerade.com/questions/your-question-url</code></pre>
+
+            <h4>POST Request</h4>
+            <pre><code class="language-http">POST /api/getVideoSource
 Content-Type: application/json
 
 {
     "url": "https://www.numerade.com/questions/your-question-url"
-}</code></pre>
-                    <p>Request a video proxy URL (alternative method)</p>
-                </div>
+}
+</code></pre>
 
-                <div class="endpoint">
-                    <h3>Response Format</h3>
-                    <pre><code class="language-json">{
+            <h4>Response</h4>
+            <pre><code class="language-json">{
     "key": "bc2654783f2523a22390f6e18ad2d83f6c711b24f1f0cc32921cabc91a7d69a1",
     "title": "Question Title",
     "proxyUrl": "https://free-numerade-videos.vercel.app/api/getVideoSource?key=bc2654783f2523a22390f6e18ad2d83f6c711b24f1f0cc32921cabc91a7d69a1",
+    "watchUrl": "https://free-numerade-videos.vercel.app/watch?watch=bc2654783f2523a22390f6e18ad2d83f6c711b24f1f0cc32921cabc91a7d69a1",
     "isAIGenerated": false
-}</code></pre>
-                    <p>The proxyUrl is valid for 5 minutes. The isAIGenerated flag indicates AI-created content.</p>
-                </div>
+}
+</code></pre>
+          </div>
 
-                <div class="endpoint">
-                    <h3>Usage Example</h3>
-                    <pre><code class="language-html">&lt;video controls&gt;
+          <div class="endpoint">
+            <h3>Video Access</h3>
+            <p>There are two ways to access the video content:</p>
+
+            <h4>1. Built-in Video Player</h4>
+            <p>
+              The recommended method is to use the built-in video player, which
+              provides playback controls, download capability, and an expiry
+              countdown:
+            </p>
+            <pre><code class="language-http">GET /watch?watch=your_received_key</code></pre>
+
+            <h4>2. Direct Integration</h4>
+            <p>
+              For custom implementations, use the proxy URL in your own video
+              player:
+            </p>
+            <pre><code class="language-html">&lt;video controls&gt;
     &lt;source src="https://free-numerade-videos.vercel.app/api/getVideoSource?key=your_received_key" type="video/mp4"&gt;
 &lt;/video&gt;</code></pre>
-                    <p>Example of using the proxy URL in an HTML5 video player</p>
-                </div>
+          </div>
 
-                <div class="endpoint">
-                    <h3>JavaScript Example</h3>
-                    <pre><code class="language-javascript">async function getVideo(numeradeUrl) {
+          <div class="endpoint">
+            <h3>Implementation Example</h3>
+            <pre><code class="language-javascript">async function getVideo(numeradeUrl) {
     try {
         const response = await fetch('/api/getVideoSource', {
             method: 'POST',
@@ -77,7 +103,9 @@ Content-Type: application/json
         
         const data = await response.json();
         return {
+            key: data.key,
             proxyUrl: data.proxyUrl,
+            watchUrl: data.watchUrl,
             isAIGenerated: data.isAIGenerated,
             title: data.title
         };
@@ -86,38 +114,41 @@ Content-Type: application/json
         throw error;
     }
 }</code></pre>
-                    <p>Example of requesting video data with error handling</p>
-                </div>
+          </div>
 
-                <div class="endpoint">
-                    <h3>Important Notes</h3>
-                    <ul>
-                        <li>Proxy URLs expire after 5 minutes</li>
-                        <li>Supported URL formats:
-                            <ul>
-                                <li>www.numerade.com/questions/...</li>
-                                <li>www.numerade.com/ask/question/...</li>
-                            </ul>
-                        </li>
-                        <li>Direct video file access is not available for security</li>
-                        <li>Rate limiting may apply</li>
-                        <li>For high-volume usage, consider using our Discord bot</li>
-                    </ul>
-                </div>
-            </section>
-        </main>
+          <div class="endpoint">
+            <h3>Technical Details</h3>
+            <ul>
+              <li>All access keys and URLs expire after 5 minutes</li>
+              <li>
+                Supported URL formats:
+                <ul>
+                  <li>www.numerade.com/questions/...</li>
+                  <li>www.numerade.com/ask/question/...</li>
+                </ul>
+              </li>
+              <li>
+                The isAIGenerated flag in the response indicates AI-created
+                content
+              </li>
+              <li>Rate limiting is in place to ensure service stability</li>
+              <li>For high-volume usage, a Discord bot is available</li>
+            </ul>
+          </div>
+        </section>
+      </main>
 
-        <footer>
-            <div class="container">
-                <p>Created by GooglyBlox</p>
-                <div class="links">
-                    <a href="https://github.com/GooglyBlox" target="_blank">GitHub</a>
-                    <a href="https://x.com/GooglyBlox" target="_blank">Twitter</a>
-                </div>
-            </div>
-        </footer>
+      <footer>
+        <div class="container">
+          <p>Created by GooglyBlox</p>
+          <div class="links">
+            <a href="https://github.com/GooglyBlox" target="_blank">GitHub</a>
+            <a href="https://x.com/GooglyBlox" target="_blank">Twitter</a>
+          </div>
+        </div>
+      </footer>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-</body>
+  </body>
 </html>

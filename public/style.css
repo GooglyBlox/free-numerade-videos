@@ -88,6 +88,20 @@ main {
   border-radius: 50%;
 }
 
+.endpoint h4 {
+  font-size: 1rem;
+  color: #fff;
+  margin: 20px 0 12px;
+}
+
+.endpoint h4:first-child {
+  margin-top: 0;
+}
+
+.endpoint > p {
+  margin-bottom: 24px;
+}
+
 .endpoint pre {
   margin: 16px 0;
   border-radius: 8px;
@@ -110,6 +124,15 @@ main {
 .endpoint ul {
   margin: 16px 0 0 20px;
   color: #999;
+}
+
+.endpoint ul ul {
+  margin: 8px 0 8px 20px;
+}
+
+.endpoint ul ul li {
+  margin-bottom: 4px;
+  font-size: 14px;
 }
 
 .endpoint li {
