@@ -189,6 +189,178 @@ async function extractVideoInfo(page) {
   }
 }
 
+async function waitForMathJax(page) {
+  try {
+    await page.waitForFunction(
+      () => {
+        return (
+          typeof MathJax !== "undefined" &&
+          typeof MathJax.typesetPromise === "function" &&
+          document.querySelector(".MathJax_SVG,.MathJax")
+        );
+      },
+      { timeout: 10000 }
+    );
+
+    await page.evaluate(() => MathJax.typesetPromise());
+  } catch (error) {
+    console.error("MathJax rendering error:", error);
+  }
+}
+
+async function captureInstantAnswer(page, answerHtml) {
+  try {
+    const stepsMatch = answerHtml.match(
+      /<div class="postorder-steps-list">([\s\S]*?)<\/div>\s*<\/div>/
+    );
+    if (!stepsMatch) {
+      console.error("Could not find steps content");
+      return null;
+    }
+
+    const stepsContent = stepsMatch[1];
+
+    const cleanHtml = stepsContent
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<button[^>]*>.*?<\/button>/gi, "")
+      .replace(/<img[^>]*>/gi, "")
+      .replace(
+        /<mjx-container[^>]*>([\s\S]*?)<\/mjx-container>/g,
+        (match, content) => {
+          const mathMatch = content.match(/<math[^>]*>([\s\S]*?)<\/math>/);
+          if (mathMatch) {
+            return `\\(${mathMatch[1]}\\)`;
+          }
+          return "";
+        }
+      );
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+          <script>
+            window.MathJax = {
+              tex: {
+                inlineMath: [['\\\\(', '\\\\)']],
+                displayMath: [['\\\\[', '\\\\]']],
+                processEscapes: true
+              },
+              svg: {
+                fontCache: 'global'
+              }
+            };
+          </script>
+          <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+          <style>
+            body {
+              margin: 20px;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+              background: white;
+              color: black;
+              line-height: 1.6;
+              width: 800px;
+              padding: 20px;
+            }
+            .solution {
+              padding: 20px;
+              background: white;
+            }
+            .postorder-steps-item {
+              margin-bottom: 30px;
+            }
+            .postorder-steps-item-step {
+              font-weight: bold;
+              margin-bottom: 10px;
+            }
+            .postorder-steps-item-text {
+              padding: 15px;
+              background: #f8f9fa;
+              border-radius: 8px;
+            }
+            .MathJax { 
+              font-size: 115% !important; 
+            }
+          </style>
+        </head>
+        <body>
+          <div class="solution">
+            ${cleanHtml}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const renderPage = await page.browser().newPage();
+
+    await renderPage.setViewport({ width: 900, height: 1200 });
+
+    await renderPage.setRequestInterception(true);
+    renderPage.on("request", (request) => {
+      if (
+        request.url().includes("mathjax") ||
+        request.url().includes("polyfill.io") ||
+        request.url().startsWith("data:")
+      ) {
+        request.continue();
+      } else {
+        request.abort();
+      }
+    });
+
+    await renderPage.setContent(html, { waitUntil: "networkidle0" });
+    await waitForMathJax(renderPage);
+
+    const element = await renderPage.$(".solution");
+    if (!element) {
+      throw new Error("Solution element not found");
+    }
+
+    const imageBuffer = await element.screenshot({
+      type: "png",
+      omitBackground: true,
+      padding: 20,
+    });
+
+    await renderPage.close();
+
+    return `data:image/png;base64,${imageBuffer.toString("base64")}`;
+  } catch (error) {
+    console.error("Error capturing instant answer:", error);
+    return null;
+  }
+}
+
+async function extractInstantAnswer(page) {
+  try {
+    await page
+      .waitForSelector(".postorder-steps-container", { timeout: 30000 })
+      .catch(() => null);
+
+    const answer = await page.evaluate(() => {
+      const container = document.querySelector(".postorder-steps-container");
+      if (!container) return null;
+
+      return {
+        rawHtml: container.innerHTML,
+      };
+    });
+
+    if (!answer) return null;
+
+    const imageData = await captureInstantAnswer(page, answer.rawHtml);
+
+    return {
+      image: imageData,
+      rawHtml: answer.rawHtml,
+    };
+  } catch (error) {
+    console.error("Answer extraction failed:", error);
+    return null;
+  }
+}
+
 function normalizeFilename(title) {
   let normalized = title
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
@@ -242,6 +414,7 @@ module.exports = async (req, res) => {
         return res.json({
           title: data.title,
           expiryTime: data.expiryTime,
+          instantAnswer: data.instantAnswer,
         });
       }
 
@@ -284,14 +457,20 @@ module.exports = async (req, res) => {
 
     await page.setRequestInterception(true);
     page.on("request", (request) => {
-      if (
-        ["image", "font", "stylesheet"].includes(request.resourceType()) ||
+      const shouldBlock =
+        ["image", "stylesheet", "font"].includes(request.resourceType()) ||
         request
           .url()
           .match(
             /google-analytics|doubleclick|facebook|analytics|tracker|pixel/
-          )
+          );
+
+      if (
+        request.url().includes("mathjax") ||
+        request.url().includes("polyfill.io")
       ) {
+        request.continue();
+      } else if (shouldBlock) {
         request.abort();
       } else {
         request.continue();
@@ -308,12 +487,23 @@ module.exports = async (req, res) => {
       timeout: 60000,
     });
 
-    const videoInfo = await extractVideoInfo(page);
-    if (!videoInfo?.url) {
-      throw new Error("Video source not found");
-    }
+    const [videoInfo, instantAnswer] = await Promise.all([
+      extractVideoInfo(page),
+      extractInstantAnswer(page),
+    ]);
 
     await browser.close();
+
+    if (!videoInfo?.url && !instantAnswer) {
+      throw new Error("No content found");
+    }
+
+    if (!videoInfo?.url) {
+      return res.json({
+        error: "Video source not found",
+        instantAnswer: instantAnswer,
+      });
+    }
 
     const videoKey = generateVideoKey();
     const expiryTime = Math.floor(Date.now() / 1000) + VIDEO_KEY_EXPIRY;
@@ -324,6 +514,7 @@ module.exports = async (req, res) => {
         url: videoInfo.url,
         title: videoInfo.title,
         expiryTime: expiryTime,
+        instantAnswer: instantAnswer,
       })
     );
 
@@ -337,12 +528,16 @@ module.exports = async (req, res) => {
       proxyUrl: `${baseUrl}/api/getVideoSource?key=${videoKey}`,
       watchUrl: `${baseUrl}/watch?watch=${videoKey}`,
       isAIGenerated: videoInfo.isAIGenerated,
+      instantAnswer: instantAnswer,
     });
   } catch (error) {
     console.error("Error processing request:", error);
     if (browser) {
       await browser.close();
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      instantAnswer: error.instantAnswer || null,
+    });
   }
 };
