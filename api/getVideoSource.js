@@ -11,7 +11,7 @@ if (process.env.VERCEL) {
 }
 
 const redis = new Redis({
-  port: 14018,
+  port: 19748,
   host: process.env.REDIS_HOST,
   password: process.env.REDIS_PASSWORD,
   retryStrategy: (times) => {
